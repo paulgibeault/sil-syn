@@ -32,14 +32,23 @@ export const MCUState = Object.freeze({
 export function parseProgram(source) {
   const instructions = [];
   for (const raw of source.split('\n')) {
-    const line = raw.replace(/#.*$/, '').trim();
+    let line = raw.replace(/#.*$/, '').trim();
     if (!line) continue;
     if (line.endsWith(':')) {
       instructions.push({ type: 'LABEL', name: line.slice(0, -1).toLowerCase() });
       continue;
     }
+    // Conditional prefix: '+' = execute only if condFlag true, '-' = only if false
+    let cond = null;
+    if (line.startsWith('+ ') || line.startsWith('+\t')) {
+      cond = true;
+      line = line.slice(2).trim();
+    } else if (line.startsWith('- ') || line.startsWith('-\t')) {
+      cond = false;
+      line = line.slice(2).trim();
+    }
     const [op, ...args] = line.split(/\s+/);
-    instructions.push({ type: op.toUpperCase(), args });
+    instructions.push({ type: op.toUpperCase(), args, cond });
   }
   return instructions;
 }
@@ -265,6 +274,13 @@ export function stepMCU(mcu, board) {
       }
 
       const instr = mcu.program[mcu.pc];
+
+      // Conditional execution: skip if condition doesn't match flag
+      if (instr.cond !== null && instr.cond !== undefined && instr.cond !== mcu.condFlag) {
+        mcu.pc++;
+        continue;
+      }
+
       const handler = INSTRUCTIONS[instr.type];
       if (!handler) throw new Error(`Unknown instruction: ${instr.type}`);
       handler(mcu, board, instr.args, labelMap);

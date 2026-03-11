@@ -26,18 +26,24 @@ function runTicks(mcu, board, n) {
 describe('parseProgram', () => {
   it('parses a simple mov instruction', () => {
     const prog = parseProgram('mov p0 acc');
-    expect(prog).toEqual([{ type: 'MOV', args: ['p0', 'acc'] }]);
+    expect(prog).toEqual([{ type: 'MOV', args: ['p0', 'acc'], cond: null }]);
   });
 
   it('strips comments', () => {
     const prog = parseProgram('add 10 # increment acc');
-    expect(prog).toEqual([{ type: 'ADD', args: ['10'] }]);
+    expect(prog).toEqual([{ type: 'ADD', args: ['10'], cond: null }]);
   });
 
   it('parses labels', () => {
     const prog = parseProgram('loop:\njmp loop');
     expect(prog[0]).toEqual({ type: 'LABEL', name: 'loop' });
-    expect(prog[1]).toEqual({ type: 'JMP', args: ['loop'] });
+    expect(prog[1]).toEqual({ type: 'JMP', args: ['loop'], cond: null });
+  });
+
+  it('parses conditional prefixes', () => {
+    const prog = parseProgram('+ mov acc p0\n- mov 0 p0');
+    expect(prog[0]).toEqual({ type: 'MOV', args: ['acc', 'p0'], cond: true });
+    expect(prog[1]).toEqual({ type: 'MOV', args: ['0', 'p0'], cond: false });
   });
 
   it('ignores blank lines', () => {
@@ -209,6 +215,40 @@ describe('JMP / DJT / DJF', () => {
     const board = makeBoard();
     stepMCU(mcu, board); // batch: mov, teq, djf (jumps past mov 0)
     expect(mcu.registers.acc).toBe(3); // mov 0 acc was skipped
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Conditional execution (+/- prefix)
+// ---------------------------------------------------------------------------
+
+describe('Conditional prefix execution', () => {
+  it('+ prefix runs only when condFlag is true', () => {
+    const mcu = makeMCU('mov 10 acc\ntgt acc 5\n+ mov 99 dat');
+    const board = makeBoard();
+    stepMCU(mcu, board);
+    expect(mcu.registers.dat).toBe(99); // tgt was true, so + line ran
+  });
+
+  it('+ prefix is skipped when condFlag is false', () => {
+    const mcu = makeMCU('mov 3 acc\ntgt acc 5\n+ mov 99 dat');
+    const board = makeBoard();
+    stepMCU(mcu, board);
+    expect(mcu.registers.dat).toBe(0); // tgt was false, + line skipped
+  });
+
+  it('- prefix runs only when condFlag is false', () => {
+    const mcu = makeMCU('mov 3 acc\ntgt acc 5\n- mov 77 dat');
+    const board = makeBoard();
+    stepMCU(mcu, board);
+    expect(mcu.registers.dat).toBe(77);
+  });
+
+  it('gatekeeper pattern works: pass > 50, else 0', () => {
+    const mcu = makeMCU('mov 60 acc\ntgt acc 50\n+ mov acc p0\n- mov 0 p0', { simplePins: ['p0'] });
+    const board = makeBoard();
+    stepMCU(mcu, board);
+    expect(mcu.simplePins.p0).toBe(60);
   });
 });
 
