@@ -52,13 +52,13 @@ describe('XBus handshake', () => {
 
     // Tick 1: both execute their mov → both block on XBus
     // Tick 2 start: resolveXBus → handshake completes, value transferred
-    // Tick 2: single-instruction programs loop and immediately re-block
+    // Tick 2: both now READY, programs wrap at end → implicit sleep (end of tick)
     scheduler.run(2);
 
     expect(receiver.registers.acc).toBe(77);
-    // Programs loop, so both re-issue XBus after transfer — that's correct
-    expect(sender.state).toBe(MCUState.XBUS_SENDING);
-    expect(receiver.state).toBe(MCUState.XBUS_RECEIVING);
+    // After handshake + wrap, both are READY (will re-block on tick 3)
+    expect(sender.state).toBe(MCUState.READY);
+    expect(receiver.state).toBe(MCUState.READY);
   });
 
   it('sender stays blocked until receiver is ready', () => {
@@ -68,14 +68,15 @@ describe('XBus handshake', () => {
       receiverSource: 'slp 2\nmov x0 acc',
     });
 
-    scheduler.run(1); // sender blocks immediately; receiver starts sleeping
+    scheduler.run(1); // sender blocks on XBus; receiver executes slp 2 → sleeping, timer=2
     expect(sender.state).toBe(MCUState.XBUS_SENDING);
     expect(receiver.state).toBe(MCUState.SLEEPING);
 
-    // tick 2: receiver wakes
-    // tick 3: receiver issues mov x0 acc → XBUS_RECEIVING
-    // tick 4 start: resolveXBus matches both → transfer, both READY
-    scheduler.run(3);
+    // tick 2: receiver timer 2→1
+    // tick 3: receiver timer 1→0, wakes
+    // tick 4: receiver READY, executes mov x0 acc → XBUS_RECEIVING
+    // tick 5 start: resolveXBus matches both → transfer
+    scheduler.run(4);
     expect(receiver.registers.acc).toBe(42);
   });
 

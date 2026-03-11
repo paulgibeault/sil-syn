@@ -159,9 +159,9 @@ const INSTRUCTIONS = {
 
   SLP(mcu, board, args) {
     const cycles = Math.max(0, Math.round(readValue(mcu, board, args[0])));
-    // The tick on which SLP executes counts as the first sleep tick,
-    // so we pre-decrement by 1. slp 1 → timer=0 → wakes next tick.
-    mcu.sleepTimer = Math.max(0, cycles - 1);
+    // With batch execution, SLP no longer consumes a tick on its own.
+    // sleepTimer = cycles means the MCU stays asleep for exactly N ticks.
+    mcu.sleepTimer = cycles;
     mcu.state = MCUState.SLEEPING;
     mcu.pc++;
   },
@@ -221,6 +221,11 @@ export function buildLabelMap(program) {
 /**
  * Advance the MCU by one tick.
  *
+ * Like Shenzhen I/O, each tick the MCU executes instructions sequentially
+ * until it hits SLP, blocks on XBus, or wraps past the end of the program
+ * (implicit slp 1). This means a multi-instruction program completes in
+ * one tick as long as it doesn't sleep or block.
+ *
  * @param {object} mcu   - MCU instance (mutated in place)
  * @param {object} board - Board interface for reading/writing shared pins
  * @returns {MCUState}   - State after this tick
@@ -238,25 +243,33 @@ export function stepMCU(mcu, board) {
     return mcu.state;
   }
 
-  // READY: execute one instruction
+  // READY: execute instructions until SLP, XBus block, or end-of-program wrap
   if (mcu.state === MCUState.READY) {
-    const labelMap = buildLabelMap(mcu.program);
-
-    // Wrap at end of program (transparent — does not consume a tick)
-    if (mcu.pc >= mcu.program.length) mcu.pc = 0;
-
-    // Skip LABEL pseudo-instructions (also transparent)
-    while (mcu.pc < mcu.program.length && mcu.program[mcu.pc].type === 'LABEL') {
-      mcu.pc++;
-      if (mcu.pc >= mcu.program.length) mcu.pc = 0;
-    }
-
     if (mcu.program.length === 0) return mcu.state;
 
-    const instr = mcu.program[mcu.pc];
-    const handler = INSTRUCTIONS[instr.type];
-    if (!handler) throw new Error(`Unknown instruction: ${instr.type}`);
-    handler(mcu, board, instr.args, labelMap);
+    const labelMap = buildLabelMap(mcu.program);
+    const maxInstructions = mcu.program.length * 2; // safety limit
+    let executed = 0;
+
+    while (mcu.state === MCUState.READY && executed < maxInstructions) {
+      // Wrap at end of program → implicit slp 1 (end the tick)
+      if (mcu.pc >= mcu.program.length) {
+        mcu.pc = 0;
+        break;
+      }
+
+      // Skip LABEL pseudo-instructions (transparent)
+      if (mcu.program[mcu.pc].type === 'LABEL') {
+        mcu.pc++;
+        continue;
+      }
+
+      const instr = mcu.program[mcu.pc];
+      const handler = INSTRUCTIONS[instr.type];
+      if (!handler) throw new Error(`Unknown instruction: ${instr.type}`);
+      handler(mcu, board, instr.args, labelMap);
+      executed++;
+    }
   }
 
   return mcu.state;

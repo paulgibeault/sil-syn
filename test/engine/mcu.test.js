@@ -61,8 +61,7 @@ describe('MOV instruction', () => {
   it('moves acc into dat', () => {
     const mcu = makeMCU('mov 7 acc\nmov acc dat');
     const board = makeBoard();
-    stepMCU(mcu, board); // mov 7 acc
-    stepMCU(mcu, board); // mov acc dat
+    stepMCU(mcu, board); // batch: mov 7 acc, mov acc dat
     expect(mcu.registers.dat).toBe(7);
   });
 
@@ -97,21 +96,21 @@ describe('Arithmetic', () => {
   it('add increases acc', () => {
     const mcu = makeMCU('mov 10 acc\nadd 5');
     const board = makeBoard();
-    runTicks(mcu, board, 2);
+    stepMCU(mcu, board); // batch: mov, add
     expect(mcu.registers.acc).toBe(15);
   });
 
   it('sub decreases acc', () => {
     const mcu = makeMCU('mov 10 acc\nsub 3');
     const board = makeBoard();
-    runTicks(mcu, board, 2);
+    stepMCU(mcu, board);
     expect(mcu.registers.acc).toBe(7);
   });
 
   it('mul multiplies acc', () => {
     const mcu = makeMCU('mov 6 acc\nmul 7');
     const board = makeBoard();
-    runTicks(mcu, board, 2);
+    stepMCU(mcu, board);
     expect(mcu.registers.acc).toBe(42);
   });
 });
@@ -124,18 +123,19 @@ describe('SLP instruction', () => {
   it('enters SLEEPING state', () => {
     const mcu = makeMCU('slp 3');
     const board = makeBoard();
-    stepMCU(mcu, board);
+    stepMCU(mcu, board); // batch executes slp 3 → sleeping, timer=3
     expect(mcu.state).toBe(MCUState.SLEEPING);
-    expect(mcu.sleepTimer).toBe(2); // first tick decrements once
+    expect(mcu.sleepTimer).toBe(3);
   });
 
   it('wakes after N ticks', () => {
     const mcu = makeMCU('slp 2\nmov 1 acc');
     const board = makeBoard();
-    stepMCU(mcu, board); // slp 2 → sleeping, timer=1
-    stepMCU(mcu, board); // timer=0 → wakes, state=READY
+    stepMCU(mcu, board); // slp 2 → sleeping, timer=2
+    stepMCU(mcu, board); // timer 2→1
+    stepMCU(mcu, board); // timer 1→0 → wakes, state=READY
     expect(mcu.state).toBe(MCUState.READY);
-    stepMCU(mcu, board); // mov 1 acc
+    stepMCU(mcu, board); // mov 1 acc (and wraps)
     expect(mcu.registers.acc).toBe(1);
   });
 });
@@ -148,28 +148,28 @@ describe('TEQ / TGT', () => {
   it('teq sets condFlag true on equality', () => {
     const mcu = makeMCU('mov 5 acc\nteq acc 5');
     const board = makeBoard();
-    runTicks(mcu, board, 2);
+    stepMCU(mcu, board); // batch: mov, teq
     expect(mcu.condFlag).toBe(true);
   });
 
   it('teq sets condFlag false on inequality', () => {
     const mcu = makeMCU('mov 5 acc\nteq acc 6');
     const board = makeBoard();
-    runTicks(mcu, board, 2);
+    stepMCU(mcu, board);
     expect(mcu.condFlag).toBe(false);
   });
 
   it('tgt sets condFlag true when a > b', () => {
     const mcu = makeMCU('mov 10 acc\ntgt acc 5');
     const board = makeBoard();
-    runTicks(mcu, board, 2);
+    stepMCU(mcu, board);
     expect(mcu.condFlag).toBe(true);
   });
 
   it('tgt sets condFlag false when a <= b', () => {
     const mcu = makeMCU('mov 3 acc\ntgt acc 5');
     const board = makeBoard();
-    runTicks(mcu, board, 2);
+    stepMCU(mcu, board);
     expect(mcu.condFlag).toBe(false);
   });
 });
@@ -179,24 +179,35 @@ describe('TEQ / TGT', () => {
 // ---------------------------------------------------------------------------
 
 describe('JMP / DJT / DJF', () => {
-  it('jmp loops a program', () => {
+  it('jmp loops until safety limit', () => {
+    // Infinite loop without slp — hits the safety limit per tick
+    // program = [LABEL, ADD 1, JMP loop], length=3, maxInstructions=6
+    // Each tick: 3 iterations of (add 1, jmp loop) = acc += 3
     const mcu = makeMCU('loop:\nadd 1\njmp loop');
     const board = makeBoard();
-    runTicks(mcu, board, 6); // 3 full iterations
+    stepMCU(mcu, board);
     expect(mcu.registers.acc).toBe(3);
+  });
+
+  it('jmp loops correctly with slp', () => {
+    // Realistic program: add 1, slp 1, jmp loop — one add per wake cycle
+    const mcu = makeMCU('loop:\nadd 1\nslp 1\njmp loop');
+    const board = makeBoard();
+    runTicks(mcu, board, 4); // tick 1: add+slp, tick 2: sleep, tick 3: jmp+add+slp, tick 4: sleep
+    expect(mcu.registers.acc).toBe(2);
   });
 
   it('djt jumps when condFlag is true', () => {
     const mcu = makeMCU('mov 5 acc\nteq acc 5\ndjt done\nmov 0 acc\ndone:\n');
     const board = makeBoard();
-    runTicks(mcu, board, 5);
+    stepMCU(mcu, board); // batch: mov, teq, djt (jumps past mov 0)
     expect(mcu.registers.acc).toBe(5); // mov 0 acc was skipped
   });
 
   it('djf jumps when condFlag is false', () => {
     const mcu = makeMCU('mov 3 acc\nteq acc 5\ndjf done\nmov 0 acc\ndone:\n');
     const board = makeBoard();
-    runTicks(mcu, board, 5);
+    stepMCU(mcu, board); // batch: mov, teq, djf (jumps past mov 0)
     expect(mcu.registers.acc).toBe(3); // mov 0 acc was skipped
   });
 });
