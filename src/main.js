@@ -9,7 +9,7 @@ import { level02 } from './levels/level02.js';
 import { level03 } from './levels/level03.js';
 import { level04 } from './levels/level04.js';
 import { level05 } from './levels/level05.js';
-import { trainingT1, trainingT2, trainingT3, trainingT4 } from './levels/training.js';
+import { trainingT1, trainingT2, trainingT3, trainingT4, trainingT5 } from './levels/training.js';
 import { TUTORIAL_PAGES } from './tutorial.js';
 import { createBuilder } from './ui/builder.js';
 import { createGuide, runGuideSequence } from './ui/guide.js';
@@ -19,7 +19,7 @@ import { createGuide, runGuideSequence } from './ui/guide.js';
 // ---------------------------------------------------------------------------
 
 const LEVELS = [
-  trainingT1, trainingT2, trainingT3, trainingT4,
+  trainingT1, trainingT2, trainingT3, trainingT4, trainingT5,
   level01, level02, level03, level04, level05,
 ];
 
@@ -222,7 +222,7 @@ function loadLevel(levelId) {
   renderLevelMap();
   renderCircuit();
 
-  // Create builder with level-specific pins
+  // Create builder with level-specific constraints
   const pins = currentLevel.playerMCU.simplePins || [];
   const extPins = Object.keys(currentLevel.sources || {});
 
@@ -230,15 +230,21 @@ function loadLevel(levelId) {
     container: builderContainer,
     pins,
     extPins,
+    maxSlots: currentLevel.maxSlots || 9,
+    allowedOps: currentLevel.allowedOps || null,
+    allowedArgs: currentLevel.allowedArgs || null,
+    prefill: currentLevel.prefill || null,
     onChange: () => {
       setSavedCode(currentLevel.id, builder.getCode());
       clearError();
     },
   });
 
-  // Restore saved code
-  const saved = getSavedCode(levelId);
-  if (saved) builder.setCode(saved);
+  // Restore saved code (only for non-prefilled levels)
+  if (!currentLevel.prefill) {
+    const saved = getSavedCode(levelId);
+    if (saved) builder.setCode(saved);
+  }
 
   resetSim();
 

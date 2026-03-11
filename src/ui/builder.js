@@ -1,9 +1,10 @@
 /**
  * Visual instruction builder — tap-to-build assembly programs.
  *
- * Replaces the textarea with a slot-based editor where each instruction
- * is a row of tappable cells. Players pick opcodes and arguments from
- * context-aware pickers instead of typing.
+ * Supports constrained modes for training levels:
+ *   - allowedOps: only show these opcodes in the picker
+ *   - allowedArgs: only show these values in the argument picker
+ *   - prefill: pre-filled slots with per-arg locking
  */
 
 // ---------------------------------------------------------------------------
@@ -11,39 +12,64 @@
 // ---------------------------------------------------------------------------
 
 const OPS = {
-  mov: { args: 2, hint: 'Move a value',           argHints: ['from', 'to'] },
-  add: { args: 1, hint: 'Add to acc',             argHints: ['value'] },
-  sub: { args: 1, hint: 'Subtract from acc',      argHints: ['value'] },
-  mul: { args: 1, hint: 'Multiply acc',           argHints: ['value'] },
-  teq: { args: 1, hint: 'Test if equal',          argHints: ['compare to'] },  // teq acc X → compare acc to X
-  tgt: { args: 1, hint: 'Test if greater',        argHints: ['compare to'] },  // tgt acc X → is acc > X?
-  slp: { args: 1, hint: 'Sleep N cycles',         argHints: ['cycles'] },
-  jmp: { args: 1, hint: 'Jump to label',          argHints: ['label'] },
-  djt: { args: 1, hint: 'Jump if true',           argHints: ['label'] },
-  djf: { args: 1, hint: 'Jump if false',          argHints: ['label'] },
+  mov: { args: 2, hint: 'Move a value',       argHints: ['from', 'to'] },
+  add: { args: 1, hint: 'Add to acc',         argHints: ['value'] },
+  sub: { args: 1, hint: 'Subtract from acc',  argHints: ['value'] },
+  mul: { args: 1, hint: 'Multiply acc',       argHints: ['value'] },
+  teq: { args: 1, hint: 'Test if equal',      argHints: ['compare to'] },
+  tgt: { args: 1, hint: 'Test if greater',    argHints: ['compare to'] },
+  slp: { args: 1, hint: 'Sleep N cycles',     argHints: ['cycles'] },
+  jmp: { args: 1, hint: 'Jump to label',      argHints: ['label'] },
+  djt: { args: 1, hint: 'Jump if true',       argHints: ['label'] },
+  djf: { args: 1, hint: 'Jump if false',      argHints: ['label'] },
 };
 
-// Simplified: teq/tgt always compare acc to the argument (less confusing for new players)
-// Advanced mode (text editor) still supports the full 2-arg form
+export { OPS };
 
-const MAX_SLOTS = 9;
+const DEFAULT_MAX_SLOTS = 9;
 
 // ---------------------------------------------------------------------------
 // Builder
 // ---------------------------------------------------------------------------
 
 /**
- * @param {object} opts
- * @param {HTMLElement} opts.container  - DOM element to render into
- * @param {string[]}   opts.pins       - MCU pins available (e.g. ['p0','p1'])
- * @param {string[]}   opts.extPins    - External pins readable (e.g. ['sensor'])
- * @param {function}   opts.onChange    - Called when code changes
- * @param {number}     [opts.maxSlots] - Max instruction slots
+ * @param {object}    opts
+ * @param {HTMLElement} opts.container
+ * @param {string[]}    opts.pins          - MCU output pins
+ * @param {string[]}    opts.extPins       - External/sensor pins
+ * @param {function}    opts.onChange
+ * @param {number}      [opts.maxSlots]
+ * @param {string[]}    [opts.allowedOps]  - Restrict picker to these opcodes
+ * @param {string[]}    [opts.allowedArgs] - Restrict arg picker to these values
+ * @param {Array}       [opts.prefill]     - Pre-fill slots (see training.js)
  */
-export function createBuilder({ container, pins = [], extPins = [], onChange, maxSlots = MAX_SLOTS }) {
+export function createBuilder({
+  container, pins = [], extPins = [], onChange,
+  maxSlots = DEFAULT_MAX_SLOTS,
+  allowedOps = null,
+  allowedArgs = null,
+  prefill = null,
+}) {
+  // Slot shape: { label, cond, op, args[], opLocked, argLocked[] }
   const slots = [];
   for (let i = 0; i < maxSlots; i++) {
-    slots.push({ label: null, cond: null, op: null, args: [], locked: false });
+    slots.push({ label: null, cond: null, op: null, args: [], opLocked: false, argLocked: [] });
+  }
+
+  // Apply prefill
+  if (prefill) {
+    for (let i = 0; i < prefill.length && i < maxSlots; i++) {
+      const pf = prefill[i];
+      if (!pf) continue; // null = empty, player fills
+
+      const slot = slots[i];
+      slot.op = pf.op || null;
+      slot.args = (pf.args || []).map(a => a); // copy, nulls = blanks
+      slot.label = pf.label || null;
+      slot.cond = pf.cond ?? null;
+      slot.opLocked = pf.opLocked || false;
+      slot.argLocked = pf.locked || [];
+    }
   }
 
   let pickerEl = null;
@@ -58,26 +84,23 @@ export function createBuilder({ container, pins = [], extPins = [], onChange, ma
     container.innerHTML = '';
     container.classList.add('builder');
 
-    if (advancedMode) {
-      renderTextMode();
-      return;
-    }
+    if (advancedMode) { renderTextMode(); return; }
 
-    // Slot rows
     const slotsDiv = document.createElement('div');
     slotsDiv.className = 'builder-slots';
-
     for (let i = 0; i < maxSlots; i++) {
       slotsDiv.appendChild(renderSlot(i));
     }
     container.appendChild(slotsDiv);
 
-    // Mode toggle
-    const toggle = document.createElement('button');
-    toggle.className = 'builder-toggle';
-    toggle.textContent = 'text mode';
-    toggle.addEventListener('click', () => { advancedMode = true; render(); });
-    container.appendChild(toggle);
+    // Mode toggle (hide in heavily constrained training)
+    if (!prefill) {
+      const toggle = document.createElement('button');
+      toggle.className = 'builder-toggle';
+      toggle.textContent = 'text mode';
+      toggle.addEventListener('click', () => { advancedMode = true; render(); });
+      container.appendChild(toggle);
+    }
   }
 
   function renderTextMode() {
@@ -86,10 +109,7 @@ export function createBuilder({ container, pins = [], extPins = [], onChange, ma
     textareaEl.spellcheck = false;
     textareaEl.autocapitalize = 'none';
     textareaEl.value = toAssembly();
-    textareaEl.addEventListener('input', () => {
-      fromAssembly(textareaEl.value);
-      onChange?.();
-    });
+    textareaEl.addEventListener('input', () => { fromAssembly(textareaEl.value); onChange?.(); });
     container.appendChild(textareaEl);
 
     const toggle = document.createElement('button');
@@ -105,8 +125,11 @@ export function createBuilder({ container, pins = [], extPins = [], onChange, ma
 
   function renderSlot(idx) {
     const slot = slots[idx];
+    const isEmpty = !slot.op && !slot.label;
+    const isFullyLocked = slot.opLocked && slot.argLocked.every(Boolean);
+
     const row = document.createElement('div');
-    row.className = 'slot-row' + (slot.locked ? ' locked' : '') + (slot.op ? '' : ' empty');
+    row.className = 'slot-row' + (isEmpty ? ' empty' : '') + (isFullyLocked ? ' locked' : '');
     row.dataset.idx = idx;
 
     // Line number
@@ -115,54 +138,61 @@ export function createBuilder({ container, pins = [], extPins = [], onChange, ma
     num.textContent = String(idx + 1).padStart(2, '0');
     row.appendChild(num);
 
-    // Condition badge (shown only after a test instruction exists above)
+    // Label badge (before the instruction)
+    if (slot.label) {
+      const badge = document.createElement('span');
+      badge.className = 'slot-label-badge';
+      badge.textContent = slot.label + ':';
+      row.appendChild(badge);
+    }
+
+    // Condition badge
     if (slot.op && hasTestAbove(idx)) {
       const condBtn = document.createElement('button');
-      condBtn.className = 'slot-cond' + (slot.cond === true ? ' cond-plus' : slot.cond === false ? ' cond-minus' : '');
-      condBtn.textContent = slot.cond === true ? '+' : slot.cond === false ? '-' : ' ';
-      condBtn.addEventListener('click', () => {
-        if (slot.locked) return;
-        // Cycle: null → true → false → null
-        if (slot.cond === null) slot.cond = true;
-        else if (slot.cond === true) slot.cond = false;
-        else slot.cond = null;
-        onChange?.();
-        render();
-      });
+      condBtn.className = 'slot-cond' +
+        (slot.cond === true ? ' cond-plus' : slot.cond === false ? ' cond-minus' : '');
+      condBtn.textContent = slot.cond === true ? '+' : slot.cond === false ? '\u2212' : '\u00B7';
+      if (!isFullyLocked) {
+        condBtn.addEventListener('click', () => {
+          if (slot.cond === null) slot.cond = true;
+          else if (slot.cond === true) slot.cond = false;
+          else slot.cond = null;
+          onChange?.(); render();
+        });
+      }
       row.appendChild(condBtn);
     }
 
     // Opcode cell
     const opCell = document.createElement('button');
     opCell.className = 'slot-cell slot-op' + (slot.op ? '' : ' placeholder');
-    opCell.textContent = slot.op || 'tap +';
-    opCell.addEventListener('click', () => {
-      if (slot.locked) return;
-      showOpPicker(idx);
-    });
+    opCell.textContent = slot.op || '+';
+    if (!slot.opLocked) {
+      opCell.addEventListener('click', () => showOpPicker(idx));
+    } else {
+      opCell.classList.add('cell-locked');
+    }
     row.appendChild(opCell);
 
     // Argument cells
     if (slot.op && OPS[slot.op]) {
       const meta = OPS[slot.op];
       for (let a = 0; a < meta.args; a++) {
+        const val = slot.args[a];
+        const isBlank = val === null || val === undefined;
+        const isLocked = slot.argLocked[a] === true;
+
         const argCell = document.createElement('button');
-        argCell.className = 'slot-cell slot-arg' + (slot.args[a] ? '' : ' placeholder');
-        argCell.textContent = slot.args[a] || meta.argHints[a] || '?';
-        argCell.addEventListener('click', () => {
-          if (slot.locked) return;
-          showArgPicker(idx, a);
-        });
+        argCell.className = 'slot-cell slot-arg' +
+          (isBlank ? ' placeholder blank-arg' : '') +
+          (isLocked ? ' cell-locked' : '');
+        argCell.textContent = isBlank ? (meta.argHints[a] || '?') : val;
+
+        if (!isLocked) {
+          argCell.addEventListener('click', () => showArgPicker(idx, a));
+        }
         row.appendChild(argCell);
       }
-    }
-
-    // Label badge
-    if (slot.label) {
-      const labelBadge = document.createElement('span');
-      labelBadge.className = 'slot-label-badge';
-      labelBadge.textContent = slot.label + ':';
-      row.appendChild(labelBadge);
     }
 
     return row;
@@ -202,7 +232,7 @@ export function createBuilder({ container, pins = [], extPins = [], onChange, ma
     for (const item of items) {
       const btn = document.createElement('button');
       btn.className = 'picker-item' + (item.className ? ' ' + item.className : '');
-      if (item.label && item.desc) {
+      if (item.desc) {
         const l = document.createElement('span');
         l.className = 'picker-item-label';
         l.textContent = item.label;
@@ -221,20 +251,21 @@ export function createBuilder({ container, pins = [], extPins = [], onChange, ma
     sheet.appendChild(grid);
     pickerEl.appendChild(sheet);
     pickerEl.addEventListener('click', (e) => { if (e.target === pickerEl) closePicker(); });
-    container.appendChild(pickerEl);
+    document.body.appendChild(pickerEl);
   }
 
   function showOpPicker(slotIdx) {
-    const items = Object.entries(OPS).map(([op, meta]) => ({
-      label: op,
-      desc: meta.hint,
-      value: op,
+    const ops = allowedOps || Object.keys(OPS);
+    const items = ops.filter(op => OPS[op]).map(op => ({
+      label: op, desc: OPS[op].hint, value: op,
     }));
 
-    // Add label option
-    items.push({ label: 'label:', desc: 'Mark a jump target', value: '__label__' });
+    // Label option (only if jumps are allowed)
+    if (ops.some(o => ['jmp', 'djt', 'djf'].includes(o))) {
+      items.push({ label: 'label:', desc: 'Mark a jump target', value: '__label__' });
+    }
 
-    // Add clear option if slot has content
+    // Clear option
     if (slots[slotIdx].op || slots[slotIdx].label) {
       items.push({ label: 'clear', desc: 'Remove this line', value: '__clear__', className: 'picker-clear' });
     }
@@ -244,15 +275,11 @@ export function createBuilder({ container, pins = [], extPins = [], onChange, ma
       if (value === '__clear__') {
         slot.op = null; slot.args = []; slot.label = null; slot.cond = null;
       } else if (value === '__label__') {
-        const name = promptLabel(slotIdx);
-        if (name) { slot.label = name; }
+        slot.label = promptLabel(slotIdx);
       } else {
-        slot.op = value;
-        slot.args = [];
-        slot.cond = null;
+        slot.op = value; slot.args = []; slot.cond = null;
       }
-      onChange?.();
-      render();
+      onChange?.(); render();
     });
   }
 
@@ -263,39 +290,48 @@ export function createBuilder({ container, pins = [], extPins = [], onChange, ma
 
     const items = [];
 
-    // Number entry
-    items.push({ label: '0-999', desc: 'Enter a number', value: '__number__' });
+    // If allowedArgs is set, only show those + number pad
+    if (allowedArgs) {
+      // Categorize allowed args
+      const isJump = ['jmp', 'djt', 'djf'].includes(slot.op);
 
-    // Registers
-    items.push({ label: 'acc', desc: 'Accumulator', value: 'acc' });
-    items.push({ label: 'dat', desc: 'Data register', value: 'dat' });
+      for (const arg of allowedArgs) {
+        // Skip labels for non-jump args, skip non-labels for jumps
+        const labels = getDefinedLabels();
+        if (isJump && !labels.includes(arg) && !isNaN(Number(arg))) continue;
 
-    // MCU pins
-    for (const pin of pins) {
-      items.push({ label: pin, desc: 'Output pin', value: pin });
-    }
+        let desc = '';
+        if (arg === 'acc') desc = 'Accumulator';
+        else if (arg === 'dat') desc = 'Data register';
+        else if (pins.includes(arg)) desc = 'Output pin';
+        else if (extPins.includes(arg)) desc = 'Input';
+        else if (labels.includes(arg)) desc = 'Jump target';
+        else if (!isNaN(Number(arg))) desc = '';
 
-    // External pins (sensors)
-    for (const pin of extPins) {
-      items.push({ label: pin, desc: 'Input pin', value: pin });
-    }
+        items.push({ label: arg, desc, value: arg });
+      }
 
-    // Labels (for jump instructions)
-    if (['jmp', 'djt', 'djf'].includes(slot.op)) {
-      const labels = getDefinedLabels();
-      for (const lbl of labels) {
-        items.push({ label: lbl, desc: 'Jump target', value: lbl });
+      // Always allow number pad entry
+      items.push({ label: '#', desc: 'Enter a number', value: '__number__' });
+    } else {
+      // Full picker
+      items.push({ label: '#', desc: 'Enter a number', value: '__number__' });
+      items.push({ label: 'acc', desc: 'Accumulator', value: 'acc' });
+      items.push({ label: 'dat', desc: 'Data register', value: 'dat' });
+      for (const pin of pins) items.push({ label: pin, desc: 'Output pin', value: pin });
+      for (const pin of extPins) items.push({ label: pin, desc: 'Input', value: pin });
+
+      if (['jmp', 'djt', 'djf'].includes(slot.op)) {
+        for (const lbl of getDefinedLabels()) {
+          items.push({ label: lbl, desc: 'Jump target', value: lbl });
+        }
       }
     }
 
     showPicker(meta.argHints[argIdx] || 'Select Value', items, (value) => {
-      if (value === '__number__') {
-        showNumberPad(slotIdx, argIdx);
-        return;
-      }
+      if (value === '__number__') { showNumberPad(slotIdx, argIdx); return; }
       slot.args[argIdx] = value;
-      onChange?.();
-      render();
+      onChange?.(); render();
     });
   }
 
@@ -314,18 +350,9 @@ export function createBuilder({ container, pins = [], extPins = [], onChange, ma
 
     let value = '';
     let negative = false;
+    function updateDisplay() { display.textContent = (negative ? '-' : '') + (value || '0'); }
 
-    function updateDisplay() {
-      display.textContent = (negative ? '-' : '') + (value || '0');
-    }
-
-    const keys = [
-      '7', '8', '9',
-      '4', '5', '6',
-      '1', '2', '3',
-      '+/-', '0', 'OK',
-    ];
-
+    const keys = ['7','8','9','4','5','6','1','2','3','+/-','0','OK'];
     const grid = document.createElement('div');
     grid.className = 'numpad-grid';
 
@@ -336,22 +363,13 @@ export function createBuilder({ container, pins = [], extPins = [], onChange, ma
       btn.addEventListener('click', () => {
         if (key === 'OK') {
           const num = parseInt((negative ? '-' : '') + (value || '0'), 10);
-          const clamped = Math.max(-999, Math.min(999, num));
-          slots[slotIdx].args[argIdx] = String(clamped);
-          closePicker();
-          onChange?.();
-          render();
-        } else if (key === '+/-') {
-          negative = !negative;
-          updateDisplay();
-        } else {
-          if (value.length < 3) value += key;
-          updateDisplay();
-        }
+          slots[slotIdx].args[argIdx] = String(Math.max(-999, Math.min(999, num)));
+          closePicker(); onChange?.(); render();
+        } else if (key === '+/-') { negative = !negative; updateDisplay(); }
+        else { if (value.length < 3) value += key; updateDisplay(); }
       });
       grid.appendChild(btn);
     }
-
     sheet.appendChild(grid);
 
     const clearBtn = document.createElement('button');
@@ -362,14 +380,12 @@ export function createBuilder({ container, pins = [], extPins = [], onChange, ma
 
     pickerEl.appendChild(sheet);
     pickerEl.addEventListener('click', (e) => { if (e.target === pickerEl) closePicker(); });
-    container.appendChild(pickerEl);
+    document.body.appendChild(pickerEl);
   }
 
   function promptLabel(slotIdx) {
-    // Simple: generate label names automatically
     const existing = getDefinedLabels();
-    const names = ['loop', 'start', 'skip', 'done', 'end', 'pass', 'fail', 'next'];
-    for (const name of names) {
+    for (const name of ['loop', 'start', 'skip', 'done', 'end', 'next']) {
       if (!existing.includes(name)) return name;
     }
     return 'L' + slotIdx;
@@ -386,31 +402,28 @@ export function createBuilder({ container, pins = [], extPins = [], onChange, ma
   function toAssembly() {
     const lines = [];
     for (const slot of slots) {
-      if (slot.label) {
-        lines.push(slot.label + ':');
-      }
+      if (slot.label) lines.push(slot.label + ':');
       if (!slot.op) continue;
 
       let line = '';
       if (slot.cond === true) line += '+ ';
       else if (slot.cond === false) line += '- ';
 
-      // For teq/tgt in visual mode, we always compare acc to the arg
       if ((slot.op === 'teq' || slot.op === 'tgt') && slot.args.length === 1) {
         line += slot.op + ' acc ' + (slot.args[0] ?? '0');
       } else {
-        line += slot.op + (slot.args.length ? ' ' + slot.args.join(' ') : '');
+        const args = slot.args.map(a => a ?? '0');
+        line += slot.op + (args.length ? ' ' + args.join(' ') : '');
       }
-
       lines.push(line);
     }
     return lines.join('\n');
   }
 
   function fromAssembly(text) {
-    // Reset all slots
     for (const slot of slots) {
-      slot.label = null; slot.cond = null; slot.op = null; slot.args = []; slot.locked = false;
+      slot.label = null; slot.cond = null; slot.op = null;
+      slot.args = []; slot.opLocked = false; slot.argLocked = [];
     }
 
     const lines = text.split('\n').filter(l => l.replace(/#.*$/, '').trim());
@@ -423,7 +436,7 @@ export function createBuilder({ container, pins = [], extPins = [], onChange, ma
 
       if (line.endsWith(':')) {
         slots[slotIdx].label = line.slice(0, -1).toLowerCase();
-        continue; // label doesn't consume a slot on its own if no op
+        continue;
       }
 
       let cond = null;
@@ -452,7 +465,6 @@ export function createBuilder({ container, pins = [], extPins = [], onChange, ma
     setCode(text) { fromAssembly(text); render(); },
     render,
     getSlots: () => slots,
-    lockSlot(idx) { if (slots[idx]) { slots[idx].locked = true; render(); } },
     highlightSlot(idx) {
       const rows = container.querySelectorAll('.slot-row');
       rows.forEach(r => r.classList.remove('highlight'));
@@ -461,10 +473,8 @@ export function createBuilder({ container, pins = [], extPins = [], onChange, ma
     clearHighlight() {
       container.querySelectorAll('.slot-row').forEach(r => r.classList.remove('highlight'));
     },
-    updatePins(newPins, newExtPins) {
-      pins.length = 0; pins.push(...newPins);
-      extPins.length = 0; extPins.push(...newExtPins);
-    },
+    updatePins(p, e) { pins.length = 0; pins.push(...p); extPins.length = 0; extPins.push(...e); },
     isAdvancedMode: () => advancedMode,
+    hasPrefill: () => !!prefill,
   };
 }
