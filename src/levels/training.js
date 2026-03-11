@@ -18,7 +18,7 @@
 export const trainingT1 = {
   id: 'T1',
   name: 'First Signal',
-  description: 'Turn on the light.',
+  description: 'The light needs power. Send it a signal.',
   testCycles: 5,
   tolerance: 0,
 
@@ -32,25 +32,20 @@ export const trainingT1 = {
     outputs: [{ id: 'light', name: 'LIGHT', pin: 'p0' }],
   },
 
-  // Builder constraints
   allowedOps: ['mov'],
   allowedArgs: ['100', 'p0'],
   maxSlots: 3,
 
-  // Pre-filled slots: null = player fills, locked entries can't be edited
-  prefill: [
-    // Slot 0: player builds the whole instruction
-    null,
-  ],
+  prefill: [null],
 
   guide: [
     {
-      text: 'The <strong>LIGHT</strong> is off. Send it a signal to turn it on.',
+      text: 'See the <strong>LIGHT</strong> above? It shows <strong>"needs 100"</strong>. Your MCU is wired to it through pin <strong>p0</strong>.',
       target: '#circuit',
       position: 'below',
     },
     {
-      text: 'Tap here to add an instruction.',
+      text: '<strong>mov</strong> sends a value somewhere. Tap here to build the instruction that sends <strong>100</strong> to <strong>p0</strong>.',
       target: '.slot-row:first-child .slot-op',
       position: 'below',
     },

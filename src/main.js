@@ -124,6 +124,16 @@ function renderLevelMap() {
 // Circuit board visualization
 // ---------------------------------------------------------------------------
 
+// Icons for different component types
+const COMP_ICONS = {
+  light: '\u2B24',     // filled circle (like a bulb)
+  output: '\u25C9',    // circle with dot
+  sensor: '\u2261',    // triple bar (signal)
+  even: '\u25C9',
+  odd: '\u25C9',
+  amplified: '\u25B2',  // triangle (amplifier)
+};
+
 function renderCircuit() {
   circuitEl.innerHTML = '';
   if (!currentLevel) return;
@@ -132,39 +142,84 @@ function renderCircuit() {
 
   // Render: [inputs] → [MCU] → [outputs]
   for (const input of circuit.inputs) {
-    const comp = makeCircuitComp(input.name, '--', 'input-comp');
+    const comp = makeInputComp(input);
     comp.id = 'circuit-' + input.id;
     circuitEl.appendChild(comp);
 
     const wire = document.createElement('div');
     wire.className = 'circuit-wire';
+    wire.id = 'wire-in-' + input.id;
     circuitEl.appendChild(wire);
   }
 
-  const mcu = makeCircuitComp('MCU', 'p' + (currentLevel.playerMCU.simplePins?.length || 0), 'mcu-comp');
+  // MCU chip
+  const mcuPins = (currentLevel.playerMCU.simplePins || []).join(', ');
+  const mcu = document.createElement('div');
+  mcu.className = 'circuit-component mcu-comp';
+  mcu.innerHTML = `<div class="comp-label">MCU</div>` +
+    `<div class="comp-icon on" style="font-size:14px; color:var(--accent)">\u2588\u2588</div>` +
+    `<div class="comp-pin-label">${mcuPins}</div>`;
   circuitEl.appendChild(mcu);
 
   for (const output of circuit.outputs) {
     const wire = document.createElement('div');
     wire.className = 'circuit-wire';
     wire.id = 'wire-' + output.id;
+    const wv = document.createElement('span');
+    wv.className = 'wire-value';
+    wire.appendChild(wv);
     circuitEl.appendChild(wire);
 
-    const comp = makeCircuitComp(output.name, '--', 'output-comp');
+    const comp = makeOutputComp(output);
     comp.id = 'circuit-' + output.id;
     circuitEl.appendChild(comp);
   }
+
+  // Show initial expected values on outputs
+  updateCircuitTargets();
 }
 
-function makeCircuitComp(name, value, className) {
+function makeInputComp(input) {
   const el = document.createElement('div');
-  el.className = 'circuit-component ' + className;
-  el.innerHTML = `<div class="comp-label">${name}</div><div class="comp-value off">${value}</div>`;
+  el.className = 'circuit-component input-comp';
+  const icon = COMP_ICONS[input.id] || COMP_ICONS.sensor;
+  el.innerHTML =
+    `<div class="comp-label">${input.name}</div>` +
+    `<div class="comp-icon on" style="color:var(--cyan)">${icon}</div>` +
+    `<div class="comp-value off">--</div>`;
   return el;
 }
 
+function makeOutputComp(output) {
+  const el = document.createElement('div');
+  el.className = 'circuit-component output-comp';
+  const icon = COMP_ICONS[output.id] || COMP_ICONS.output;
+  el.innerHTML =
+    `<div class="comp-label">${output.name}</div>` +
+    `<div class="comp-icon off">${icon}</div>` +
+    `<div class="comp-value off">0</div>` +
+    `<div class="comp-target"></div>`;
+  return el;
+}
+
+function updateCircuitTargets() {
+  if (!currentLevel) return;
+  const circuit = currentLevel.circuit || inferCircuit();
+  for (const output of circuit.outputs) {
+    const el = document.getElementById('circuit-' + output.id);
+    if (!el) continue;
+    const targetEl = el.querySelector('.comp-target');
+    if (!targetEl) continue;
+    // Show what the first cycle expects
+    const expected = currentLevel.expected[output.id];
+    if (expected) {
+      const v = expected(1);
+      targetEl.textContent = `needs ${v}`;
+    }
+  }
+}
+
 function inferCircuit() {
-  // Build circuit info from level definition if not explicitly set
   const inputs = Object.keys(currentLevel.sources || {}).map(id => ({
     id, name: id.toUpperCase(), pin: id,
   }));
@@ -184,11 +239,17 @@ function updateCircuitValues() {
     const el = document.getElementById('circuit-' + input.id);
     if (!el) continue;
     const valEl = el.querySelector('.comp-value');
+    const iconEl = el.querySelector('.comp-icon');
     if (currentLevel.sources?.[input.id]) {
       const v = currentLevel.sources[input.id](Math.max(1, cycle));
       valEl.textContent = v;
-      valEl.className = 'comp-value' + (v > 0 ? ' on' : ' off');
+      valEl.className = 'comp-value on';
+      if (iconEl) iconEl.className = 'comp-icon on';
     }
+
+    // Animate input wire
+    const wire = document.getElementById('wire-in-' + input.id);
+    if (wire) wire.className = 'circuit-wire active';
   }
 
   // Update output values
@@ -196,13 +257,41 @@ function updateCircuitValues() {
     const el = document.getElementById('circuit-' + output.id);
     if (!el) continue;
     const valEl = el.querySelector('.comp-value');
+    const iconEl = el.querySelector('.comp-icon');
+    const targetEl = el.querySelector('.comp-target');
     const v = sim.board.readSimplePin(output.id);
+
     valEl.textContent = v;
     valEl.className = 'comp-value' + (v > 0 ? ' on' : ' off');
 
-    // Animate wire
+    // Icon brightness scales with value (0-100 range)
+    const brightness = Math.min(1, Math.abs(v) / 100);
+    if (iconEl) {
+      iconEl.className = 'comp-icon' + (brightness > 0.5 ? ' on' : brightness > 0 ? ' dim' : ' off');
+      if (v > 0) {
+        iconEl.style.color = `var(--green)`;
+        el.classList.add('lit');
+      } else {
+        iconEl.style.color = '';
+        el.classList.remove('lit');
+      }
+    }
+
+    // Update target display with current cycle expectation
+    if (targetEl && currentLevel.expected[output.id]) {
+      const expected = currentLevel.expected[output.id](Math.max(1, cycle));
+      const match = v === expected;
+      targetEl.textContent = match ? `\u2713 ${expected}` : `needs ${expected}`;
+      targetEl.style.color = match ? 'var(--green)' : 'var(--yellow)';
+    }
+
+    // Wire animation with value label
     const wire = document.getElementById('wire-' + output.id);
-    if (wire) wire.className = 'circuit-wire' + (v > 0 ? ' active' : '');
+    if (wire) {
+      wire.className = 'circuit-wire' + (v > 0 ? ' active' : '');
+      const wv = wire.querySelector('.wire-value');
+      if (wv) wv.textContent = v > 0 ? v : '';
+    }
   }
 }
 

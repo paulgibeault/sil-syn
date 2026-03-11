@@ -164,16 +164,22 @@
     .circuit-component {
       background: var(--panel);
       border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 6px 10px;
+      border-radius: 6px;
+      padding: 8px 12px;
       text-align: center;
-      min-width: 60px;
+      min-width: 72px;
+      position: relative;
+      transition: box-shadow 0.3s, border-color 0.3s;
     }
     .circuit-component.input-comp {
       border-color: var(--cyan);
     }
     .circuit-component.output-comp {
-      border-color: var(--yellow);
+      border-color: #333;
+    }
+    .circuit-component.output-comp.lit {
+      border-color: var(--green);
+      box-shadow: 0 0 12px rgba(127, 217, 98, 0.4);
     }
     .circuit-component.mcu-comp {
       border-color: var(--accent);
@@ -184,21 +190,45 @@
       text-transform: uppercase;
       letter-spacing: 1px;
       color: var(--dim);
-      margin-bottom: 2px;
+      margin-bottom: 4px;
     }
+    .comp-icon {
+      font-size: 20px;
+      line-height: 1;
+      margin-bottom: 2px;
+      transition: opacity 0.3s;
+    }
+    .comp-icon.off { opacity: 0.2; }
+    .comp-icon.on { opacity: 1.0; }
+    .comp-icon.dim { opacity: 0.5; }
     .comp-value {
-      font-size: 14px;
+      font-size: 12px;
       font-weight: bold;
       min-width: 32px;
     }
     .comp-value.on { color: var(--green); }
     .comp-value.off { color: var(--dim); }
+    .comp-target {
+      font-size: 9px;
+      color: var(--yellow);
+      margin-top: 2px;
+    }
+    .comp-pin-label {
+      font-size: 8px;
+      color: var(--accent);
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
     .circuit-wire {
-      width: 24px;
+      width: 28px;
       height: 2px;
       background: var(--trace);
       flex-shrink: 0;
       position: relative;
+      transition: background 0.3s;
     }
     .circuit-wire::after {
       content: '';
@@ -209,12 +239,27 @@
       border-left: 6px solid var(--trace);
       border-top: 4px solid transparent;
       border-bottom: 4px solid transparent;
+      transition: border-left-color 0.3s;
     }
     .circuit-wire.active {
       background: var(--green);
     }
     .circuit-wire.active::after {
       border-left-color: var(--green);
+    }
+    .wire-value {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      color: var(--green);
+      font-weight: bold;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .circuit-wire.active .wire-value {
+      opacity: 1;
     }
 
     /* --- Visual builder --- */
