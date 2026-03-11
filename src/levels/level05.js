@@ -57,4 +57,12 @@ export const level05 = {
     { from: { mcuId: 'mcu0', pin: 'p0' }, to: 'even' },
     { from: { mcuId: 'mcu0', pin: 'p1' }, to: 'odd' },
   ],
+
+  circuit: {
+    inputs: [{ id: 'sensor', name: 'SENSOR', pin: 'sensor' }],
+    outputs: [
+      { id: 'even', name: 'EVEN', pin: 'p0' },
+      { id: 'odd', name: 'ODD', pin: 'p1' },
+    ],
+  },
 };

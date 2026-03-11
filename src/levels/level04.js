@@ -44,4 +44,9 @@ export const level04 = {
   wiring: [
     { from: { mcuId: 'mcu0', pin: 'p0' }, to: 'output' },
   ],
+
+  circuit: {
+    inputs: [{ id: 'sensor', name: 'SENSOR', pin: 'sensor' }],
+    outputs: [{ id: 'output', name: 'OUTPUT', pin: 'p0' }],
+  },
 };

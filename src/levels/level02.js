@@ -42,4 +42,9 @@ export const level02 = {
   wiring: [
     { from: { mcuId: 'mcu0', pin: 'p0' }, to: 'light' },
   ],
+
+  circuit: {
+    inputs: [],
+    outputs: [{ id: 'light', name: 'LIGHT', pin: 'p0' }],
+  },
 };
