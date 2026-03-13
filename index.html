@@ -59,10 +59,22 @@
       flex-shrink: 0;
     }
     header h1 {
+      display: flex;
+      align-items: baseline;
+      gap: 2px;
       font-size: 12px;
+      line-height: 1;
+    }
+    .logo-si {
+      font-size: 20px;
+      font-weight: bold;
       color: var(--accent);
-      letter-spacing: 3px;
-      text-transform: uppercase;
+    }
+    .logo-syn {
+      font-size: 14px;
+      font-weight: bold;
+      color: var(--green);
+      letter-spacing: 2px;
     }
     #btn-help {
       background: none;
@@ -891,7 +903,7 @@
 </head>
 <body>
   <header>
-    <h1>Silicon Syndicate</h1>
+    <h1><span class="logo-si">Si</span><span class="logo-syn">SYN</span></h1>
     <button id="btn-help" title="Reference Guide">?</button>
   </header>
 
