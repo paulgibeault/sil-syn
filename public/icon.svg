@@ -92,12 +92,11 @@
   <circle cx="256" cy="356" r="6" fill="#131c28" stroke="#7fd962" stroke-width="2"/>
   <circle cx="296" cy="356" r="6" fill="#131c28" stroke="#39bae6" stroke-width="2"/>
 
-  <!-- Chip text: "SS" -->
-  <text x="256" y="238" text-anchor="middle" font-family="'Courier New', monospace" font-size="56" font-weight="bold" fill="url(#glow)" filter="url(#neonStrong)" letter-spacing="8">SS</text>
+  <!-- Chip text: "Si" (Silicon element symbol) -->
+  <text x="256" y="232" text-anchor="middle" font-family="'Courier New', monospace" font-size="64" font-weight="bold" fill="url(#glow)" filter="url(#neonStrong)"><tspan>S</tspan><tspan font-size="48" dy="2">i</tspan></text>
 
   <!-- Chip subtitle -->
-  <text x="256" y="280" text-anchor="middle" font-family="'Courier New', monospace" font-size="14" fill="#6c7a8a" letter-spacing="4" text-transform="uppercase">SILICON</text>
-  <text x="256" y="300" text-anchor="middle" font-family="'Courier New', monospace" font-size="14" fill="#6c7a8a" letter-spacing="4" text-transform="uppercase">SYNDICATE</text>
+  <text x="256" y="290" text-anchor="middle" font-family="'Courier New', monospace" font-size="20" font-weight="bold" fill="#6c7a8a" letter-spacing="6">SYN</text>
 
   <!-- Active signal dots (green pulses at key junctions) -->
   <circle cx="64" cy="256" r="4" fill="#7fd962" filter="url(#neon)"/>
