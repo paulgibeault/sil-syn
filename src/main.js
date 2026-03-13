@@ -36,6 +36,7 @@ const componentTray = document.getElementById('component-tray');
 const builderContainer = document.getElementById('builder-container');
 const builderModal = document.getElementById('builder-modal');
 const builderModalClose = document.getElementById('builder-modal-close');
+const builderModalClear = document.getElementById('builder-modal-clear');
 const codeError = document.getElementById('code-error');
 const btnRun = document.getElementById('btn-run');
 const btnStep = document.getElementById('btn-step');
@@ -304,6 +305,7 @@ function renderComponentTray(boardConfig) {
 // ---------------------------------------------------------------------------
 
 function openBuilderModal() {
+  builderModalClear.style.display = (builder && builder.hasPrefill()) ? 'none' : '';
   builderModal.classList.add('visible');
 }
 
@@ -314,6 +316,13 @@ function closeBuilderModal() {
 builderModalClose.addEventListener('click', closeBuilderModal);
 builderModal.addEventListener('click', (e) => {
   if (e.target === builderModal) closeBuilderModal();
+});
+builderModalClear.addEventListener('click', () => {
+  if (!builder) return;
+  builder.setCode('');
+  if (currentLevel) setSavedCode(currentLevel.id, '');
+  clearError();
+  updateRunButton();
 });
 
 // ---------------------------------------------------------------------------
