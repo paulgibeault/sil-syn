@@ -1,0 +1,44 @@
+{
+  "name": "Silicon Syndicate",
+  "short_name": "SilSyn",
+  "description": "Program microcontrollers. Route signals. Hack the system.",
+  "start_url": "/sil-syn/",
+  "scope": "/sil-syn/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#080c10",
+  "theme_color": "#080c10",
+  "categories": ["games", "education"],
+  "icons": [
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

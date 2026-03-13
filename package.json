@@ -6,10 +6,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
+    "icons": "node scripts/generate-icons.js",
     "build": "vite build",
     "dev": "vite"
   },
   "devDependencies": {
+    "sharp": "^0.34.5",
     "vite": "^5.4.0",
     "vitest": "^2.1.0"
   }
