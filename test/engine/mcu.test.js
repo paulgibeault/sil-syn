@@ -196,11 +196,12 @@ describe('JMP / DJT / DJF', () => {
   });
 
   it('jmp loops correctly with slp', () => {
-    // Realistic program: add 1, slp 1, jmp loop — one add per wake cycle
+    // Realistic program: add 1, slp 1, jmp loop — one add per tick
+    // slp 1: current tick counts, wake next tick and execute immediately
     const mcu = makeMCU('loop:\nadd 1\nslp 1\njmp loop');
     const board = makeBoard();
-    runTicks(mcu, board, 4); // tick 1: add+slp, tick 2: sleep, tick 3: jmp+add+slp, tick 4: sleep
-    expect(mcu.registers.acc).toBe(2);
+    runTicks(mcu, board, 4); // tick 1: add+slp, tick 2: wake+jmp+add+slp, tick 3: wake+jmp+add+slp, tick 4: wake+jmp+add+slp
+    expect(mcu.registers.acc).toBe(4);
   });
 
   it('djt jumps when condFlag is true', () => {

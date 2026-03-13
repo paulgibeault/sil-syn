@@ -167,9 +167,10 @@ const INSTRUCTIONS = {
   },
 
   SLP(mcu, board, args) {
-    const cycles = Math.max(0, Math.round(readValue(mcu, board, args[0])));
-    // With batch execution, SLP no longer consumes a tick on its own.
-    // sleepTimer = cycles means the MCU stays asleep for exactly N ticks.
+    const cycles = Math.max(1, Math.round(readValue(mcu, board, args[0])));
+    // slp N: sleep for N additional ticks. The tick where slp executes
+    // already ran instructions (batch), so pin values are set.
+    // On the tick where timer reaches 0, wake and execute immediately.
     mcu.sleepTimer = cycles;
     mcu.state = MCUState.SLEEPING;
     mcu.pc++;
@@ -240,11 +241,15 @@ export function buildLabelMap(program) {
  * @returns {MCUState}   - State after this tick
  */
 export function stepMCU(mcu, board) {
-  // Sleeping: just count down
+  // Sleeping: count down; when timer hits 0, wake and execute this tick
   if (mcu.state === MCUState.SLEEPING) {
     if (mcu.sleepTimer > 0) mcu.sleepTimer--;
-    if (mcu.sleepTimer === 0) mcu.state = MCUState.READY;
-    return mcu.state;
+    if (mcu.sleepTimer === 0) {
+      mcu.state = MCUState.READY;
+      // Fall through to execute instructions this tick
+    } else {
+      return mcu.state;
+    }
   }
 
   // Blocked on XBus: wait for scheduler's XBus resolver to unblock us

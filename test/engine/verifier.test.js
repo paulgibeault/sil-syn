@@ -137,14 +137,14 @@ describe('Level 01 — Power On', () => {
 });
 
 describe('Level 02 — Blink', () => {
-  // Solution: mov 100 p0, slp 4, mov 0 p0, slp 4, then loop
-  // slp 4 = timer=3, so: execute mov, slp takes 4 ticks total, then next mov
+  // Solution: mov 100 p0, slp 5, mov 0 p0, slp 5, then loop
+  // slp 5: current tick has pin set, then 4 more ticks sleeping = 5 total
   const solution = [
     'loop:',
     'mov 100 p0',
-    'slp 4',
+    'slp 5',
     'mov 0 p0',
-    'slp 4',
+    'slp 5',
     'jmp loop',
   ].join('\n');
 

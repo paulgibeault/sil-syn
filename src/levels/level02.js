@@ -12,9 +12,9 @@
  *
  * One solution:
  *   mov 100 p0
- *   slp 4
+ *   slp 5
  *   mov 0 p0
- *   slp 4
+ *   slp 5
  *   jmp 0      ← or use a label
  */
 
