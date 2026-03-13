@@ -165,10 +165,16 @@
     .tray-item.placed { opacity: 0.3; pointer-events: none; }
     .tray-icon { font-size: 12px; }
 
-    /* ===== CIRCUIT BOARD — fills all remaining space ===== */
-    #circuit {
+    /* ===== GAME AREA — board + waveform overlay ===== */
+    #game-area {
       flex: 1;
       min-height: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    #circuit {
+      width: 100%;
+      height: 100%;
       background: var(--board);
       overflow: hidden;
     }
@@ -298,7 +304,7 @@
       min-height: 16px;
     }
 
-    /* ===== BOTTOM BAR — controls + evaluation ===== */
+    /* ===== BOTTOM BAR — controls only, always at very bottom ===== */
     #bottom-bar {
       flex-shrink: 0;
       background: var(--panel);
@@ -307,7 +313,7 @@
     #controls {
       display: flex;
       gap: 6px;
-      padding: 5px 12px;
+      padding: 6px 12px;
       align-items: center;
     }
     #controls button {
@@ -334,10 +340,18 @@
     .reg-name { color: var(--dim); text-transform: uppercase; }
     .reg-val { color: var(--accent); font-weight: bold; }
     .reg-val.changed { color: var(--yellow); }
-    /* --- Waveform / Signal Monitor --- */
+    /* --- Waveform / Signal Monitor — semi-transparent overlay on board --- */
     #waveform-section {
-      padding: 0;
-      border-top: 1px solid var(--border);
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(8,12,16,0.75);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border-top: 1px solid rgba(57,186,230,0.2);
+      z-index: 15;
+      pointer-events: auto;
     }
     #waveform {
       display: flex;
@@ -346,11 +360,11 @@
     .wave-pin-section {
       display: flex;
       align-items: stretch;
-      border-bottom: 1px solid rgba(30,42,58,0.5);
+      border-bottom: 1px solid rgba(30,42,58,0.3);
     }
     .wave-pin-section:last-child { border-bottom: none; }
     .wave-pin-label {
-      width: 56px;
+      width: 48px;
       flex-shrink: 0;
       display: flex;
       align-items: center;
@@ -358,16 +372,15 @@
       font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 1px;
-      color: var(--dim);
-      border-right: 1px solid var(--border);
-      background: rgba(13,17,23,0.5);
+      color: var(--accent);
+      border-right: 1px solid rgba(57,186,230,0.15);
     }
     .wave-track {
       flex: 1;
       display: flex;
       align-items: flex-end;
       min-height: 0;
-      padding: 4px 2px 0;
+      padding: 4px 4px 0;
     }
     .wave-col {
       flex: 1;
@@ -394,18 +407,17 @@
       transition: height 0.2s ease, background 0.2s ease;
     }
     .wave-bar.pass {
-      background: linear-gradient(to top, var(--green), rgba(127,217,98,0.6));
-      box-shadow: 0 0 6px rgba(127,217,98,0.2);
+      background: linear-gradient(to top, var(--green), rgba(127,217,98,0.5));
+      box-shadow: 0 0 8px rgba(127,217,98,0.3);
     }
     .wave-bar.fail {
-      background: linear-gradient(to top, var(--red), rgba(240,113,120,0.6));
-      box-shadow: 0 0 6px rgba(240,113,120,0.2);
+      background: linear-gradient(to top, var(--red), rgba(240,113,120,0.5));
+      box-shadow: 0 0 8px rgba(240,113,120,0.3);
     }
     .wave-bar.expected {
       background: none;
-      border: 1px dashed var(--dim);
+      border: 1px dashed rgba(108,122,138,0.6);
       border-bottom: none;
-      opacity: 0.4;
     }
     .wave-expect-marker {
       position: absolute;
@@ -413,19 +425,15 @@
       right: 10%;
       height: 0;
       border-top: 2px dashed var(--yellow);
-      opacity: 0.5;
+      opacity: 0.6;
       pointer-events: none;
     }
     .wave-label {
       font-size: 8px;
-      color: var(--dim);
+      color: rgba(108,122,138,0.7);
       padding: 2px 0 3px;
       text-align: center;
-      border-top: 1px solid rgba(30,42,58,0.3);
       width: 100%;
-    }
-    .wave-col:nth-child(odd) .wave-label {
-      background: rgba(13,17,23,0.3);
     }
     .wave-value-tip {
       position: absolute;
@@ -438,22 +446,33 @@
     }
     .wave-col:hover .wave-value-tip { opacity: 1; }
     #result-banner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       text-align: center;
-      padding: 4px 12px;
-      font-size: 12px;
+      padding: 12px 32px;
+      font-size: 16px;
       font-weight: bold;
       display: none;
-      letter-spacing: 2px;
+      letter-spacing: 3px;
+      border-radius: 6px;
+      z-index: 20;
+      pointer-events: none;
     }
     #result-banner.pass {
       display: block;
-      background: #1a3320;
+      background: rgba(26,51,32,0.9);
       color: var(--green);
+      border: 1px solid var(--green);
+      box-shadow: 0 0 20px rgba(127,217,98,0.3);
     }
     #result-banner.fail {
       display: block;
-      background: #331a1a;
+      background: rgba(51,26,26,0.9);
       color: var(--red);
+      border: 1px solid var(--red);
+      box-shadow: 0 0 20px rgba(240,113,120,0.3);
     }
     #code-error {
       font-size: 11px;
@@ -869,10 +888,16 @@
 
   <div id="component-tray"></div>
 
-  <!-- Board fills all remaining space -->
-  <div id="circuit"></div>
+  <!-- Game area: board + waveform overlay -->
+  <div id="game-area">
+    <div id="circuit"></div>
+    <div id="waveform-section">
+      <div id="waveform"></div>
+    </div>
+    <div id="result-banner"></div>
+  </div>
 
-  <!-- Compact bottom bar -->
+  <!-- Controls bar: always at the very bottom -->
   <div id="bottom-bar">
     <div id="controls">
       <button id="btn-run" class="btn-run">Run</button>
@@ -885,10 +910,6 @@
         <div class="reg"><span class="reg-name">pc</span> <span class="reg-val" id="reg-pc">0</span></div>
       </div>
     </div>
-    <div id="waveform-section">
-      <div id="waveform"></div>
-    </div>
-    <div id="result-banner"></div>
     <div id="code-error"></div>
   </div>
 
