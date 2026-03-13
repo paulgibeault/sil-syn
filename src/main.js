@@ -62,6 +62,7 @@ let currentLevel = null;
 let sim = null;
 let builder = null;
 let board = null;  // circuit board instance
+let currentBoardConfig = null; // for readiness checks
 let guide = null;
 let running = false;
 let runTimer = null;
@@ -132,6 +133,7 @@ function setupCircuitBoard() {
   if (!currentLevel) return;
 
   const boardConfig = currentLevel.boardConfig || inferBoardConfig();
+  currentBoardConfig = boardConfig;
 
   board = createCircuitBoard({
     container: circuitEl,
@@ -139,7 +141,7 @@ function setupCircuitBoard() {
     gridRows: boardConfig.gridRows || 4,
     onOpenBuilder: (mcuId) => openBuilderModal(mcuId),
     onWiringChange: () => {
-      // Wiring changed — user might need to reset sim
+      updateRunButton();
     },
   });
 
@@ -327,6 +329,7 @@ function loadLevel(levelId) {
     onChange: () => {
       setSavedCode(currentLevel.id, builder.getCode());
       clearError();
+      updateRunButton();
     },
   });
 
@@ -337,6 +340,7 @@ function loadLevel(levelId) {
   }
 
   resetSim();
+  updateRunButton();
 
   // Run guide for training levels
   if (currentLevel.guide && !isLevelPassed(levelId)) {
@@ -487,8 +491,63 @@ function stepOnce() {
   if (sim.verifier.complete) { showResult(); stopRun(); }
 }
 
+// ---------------------------------------------------------------------------
+// Run readiness — disable Run when board is incomplete
+// ---------------------------------------------------------------------------
+
+function checkReadiness() {
+  if (!currentLevel || !board || !builder) return { ready: false, reason: 'No level' };
+
+  // Check code
+  const code = builder.getCode().trim();
+  if (!code) return { ready: false, reason: 'No code' };
+
+  // Check for blank args in prefilled slots
+  if (builder.hasPrefill()) {
+    const slots = builder.getSlots();
+    for (const slot of slots) {
+      if (slot.op && slot.args.some(a => a === null || a === undefined)) {
+        return { ready: false, reason: 'Fill all blanks' };
+      }
+    }
+  }
+
+  // Check wires — every expected wire in boardConfig must exist on board
+  const expectedWires = currentBoardConfig?.wires || [];
+  if (expectedWires.length > 0) {
+    const boardWires = board.wires;
+    for (const ew of expectedWires) {
+      const found = boardWires.some(bw =>
+        bw.fromComp === ew.from && bw.fromPin === ew.fromPin &&
+        bw.toComp === ew.to && bw.toPin === ew.toPin
+      );
+      if (!found) return { ready: false, reason: 'Connect all wires' };
+    }
+  }
+
+  return { ready: true };
+}
+
+function updateRunButton() {
+  if (running) return; // don't change during run
+  const { ready, reason } = checkReadiness();
+  if (ready) {
+    btnRun.disabled = false;
+    btnRun.className = 'btn-run';
+    btnRun.textContent = 'Run';
+    btnRun.title = '';
+  } else {
+    btnRun.disabled = true;
+    btnRun.className = 'btn-not-ready';
+    btnRun.textContent = reason || 'Not ready';
+    btnRun.title = reason || '';
+  }
+}
+
 function startRun() {
   if (running) return;
+  const { ready } = checkReadiness();
+  if (!ready) return;
   resetSim();
   if (!sim) return;
   running = true;
@@ -504,9 +563,8 @@ function startRun() {
 function stopRun() {
   running = false;
   if (runTimer) { clearInterval(runTimer); runTimer = null; }
-  btnRun.textContent = 'Run';
-  btnRun.className = 'btn-run';
   if (builder) builder.clearHighlight();
+  updateRunButton();
 }
 
 function showResult() {
