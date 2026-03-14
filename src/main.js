@@ -9,6 +9,9 @@ import { level02 } from './levels/level02.js';
 import { level03 } from './levels/level03.js';
 import { level04 } from './levels/level04.js';
 import { level05 } from './levels/level05.js';
+import { level06 } from './levels/level06.js';
+import { level07 } from './levels/level07.js';
+import { level08 } from './levels/level08.js';
 import { trainingT1, trainingT2, trainingT3, trainingT4, trainingT5 } from './levels/training.js';
 import { TUTORIAL_PAGES } from './tutorial.js';
 import { createBuilder } from './ui/builder.js';
@@ -21,7 +24,7 @@ import { createGuide, runGuideSequence } from './ui/guide.js';
 
 const LEVELS = [
   trainingT1, trainingT2, trainingT3, trainingT4, trainingT5,
-  level01, level02, level03, level04, level05,
+  level01, level02, level03, level04, level05, level06, level07, level08,
 ];
 
 // ---------------------------------------------------------------------------
