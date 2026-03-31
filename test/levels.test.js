@@ -11,13 +11,13 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { createMCU } from '../../src/engine/mcu.js';
-import { runLevel } from '../../src/engine/verifier.js';
+import { createMCU } from '../src/engine/mcu.js';
+import { runLevel } from '../src/engine/verifier.js';
 
-import { level01 } from '../../src/levels/level01.js';
-import { level02 } from '../../src/levels/level02.js';
-import { level03 } from '../../src/levels/level03.js';
-import { level04 } from '../../src/levels/level04.js';
+import { level01 } from '../src/levels/level01.js';
+import { level02 } from '../src/levels/level02.js';
+import { level03 } from '../src/levels/level03.js';
+import { level04 } from '../src/levels/level04.js';
 
 // ---------------------------------------------------------------------------
 // Helper: build + run a single-MCU level with the given program
@@ -74,11 +74,12 @@ describe('Level 01 — Power On', () => {
 describe('Level 02 — Blink', () => {
   it('reference solution passes', () => {
     const v = solveLevel(level02, [
+      'start:',
       'mov 100 p0',
       'slp 5',
       'mov 0 p0',
       'slp 5',
-      'jmp 0',
+      'jmp start',
     ].join('\n'));
     expect(v.passed).toBe(true);
   });
@@ -95,11 +96,12 @@ describe('Level 02 — Blink', () => {
 
   it('first 5 cycles are all 100', () => {
     const v = solveLevel(level02, [
+      'start:',
       'mov 100 p0',
       'slp 5',
       'mov 0 p0',
       'slp 5',
-      'jmp 0',
+      'jmp start',
     ].join('\n'));
     const firstFive = v.records.filter(r => r.cycle <= 5 && r.pin === 'light');
     expect(firstFive.every(r => r.expected === 100)).toBe(true);
@@ -108,11 +110,12 @@ describe('Level 02 — Blink', () => {
 
   it('cycles 6-10 are all 0', () => {
     const v = solveLevel(level02, [
+      'start:',
       'mov 100 p0',
       'slp 5',
       'mov 0 p0',
       'slp 5',
-      'jmp 0',
+      'jmp start',
     ].join('\n'));
     const secondFive = v.records.filter(r => r.cycle >= 6 && r.cycle <= 10 && r.pin === 'light');
     expect(secondFive.every(r => r.expected === 0)).toBe(true);
