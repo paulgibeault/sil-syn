@@ -89,7 +89,8 @@ export function createCircuitBoard({
   let ghostEl = null;
   let statusEl = null;
 
-  const PIN_SIZE = 20;     // px — touch-friendly pin diameter
+  const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+  const PIN_SIZE = isDesktop ? 28 : 20;     // px — touch-friendly pin diameter
 
   // -----------------------------------------------------------------------
   // Render the board
@@ -105,7 +106,7 @@ export function createCircuitBoard({
     const cellByW = Math.floor((cw - 16) / gridCols);
     const cellByH = Math.floor((ch - 30) / gridRows); // 30 for status bar
     cellSize = Math.min(cellByW, cellByH);
-    cellSize = Math.max(44, Math.min(80, cellSize));
+    cellSize = Math.max(44, cellSize);
 
     const boardW = cellSize * gridCols;
     const boardH = cellSize * gridRows;

@@ -1062,6 +1062,120 @@
     .tutorial-dots { display: flex; gap: 6px; }
     .tutorial-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
     .tutorial-dot.active { background: var(--accent); }
+
+    /* ===== RESPONSIVE — scale up for laptops / desktops ===== */
+    @media (min-width: 768px) {
+      body { font-size: 24px; }
+
+      /* Header */
+      header { padding: 14px 28px; }
+      header h1 { font-size: 24px; }
+      .logo-si { font-size: 42px; }
+      .logo-syn { font-size: 30px; }
+      #btn-help { width: 44px; height: 44px; font-size: 24px; }
+
+      /* Level map */
+      #level-map { padding: 14px 28px 10px; }
+      #level-map-line { top: 24px; }
+      .level-dot { font-size: 18px; width: 42px; height: 42px; border-width: 3px; }
+      .level-dot.locked { font-size: 18px; }
+      .level-label { font-size: 16px; max-width: 100px; margin-top: 4px; }
+      .level-node { min-width: 68px; max-width: 120px; }
+      .level-line-seg { height: 3px; }
+
+      /* Mission */
+      #mission { padding: 12px 28px; gap: 16px; }
+      #mission-title { font-size: 22px; }
+      #mission-desc { font-size: 22px; }
+      #mission-hint { padding: 12px 28px; }
+      #mission-hint .hint-label { font-size: 20px; }
+      #mission-hint .hint-text { font-size: 22px; }
+
+      /* Component tray */
+      #component-tray { padding: 12px 28px; gap: 14px; }
+      .tray-item { font-size: 20px; padding: 10px 20px; gap: 8px; border-radius: 6px; }
+      .tray-icon { font-size: 24px; }
+
+      /* Circuit board */
+      .circuit-board-container { padding: 20px; gap: 10px; }
+      .cb-comp { border-width: 3px; border-radius: 10px; gap: 4px; }
+      .cb-comp-label { font-size: 18px; letter-spacing: 2px; }
+      .cb-comp-icon { font-size: 36px; }
+      .cb-comp-value { font-size: 20px; }
+      .cb-pin { border-width: 3px; }
+      .cb-pin-label { font-size: 16px; }
+      .cb-ghost { font-size: 18px; border-width: 3px; border-radius: 10px; }
+      .cb-status { font-size: 20px; min-height: 24px; }
+      .cb-svg .cb-wire { stroke-width: 4; }
+      .cb-svg .cb-wire.selected { stroke-width: 5.5; }
+      .cb-wire-delete { width: 32px; height: 32px; font-size: 20px; }
+
+      /* Bottom bar */
+      #controls { padding: 14px 28px; gap: 14px; }
+      #controls button { font-size: 22px; padding: 12px 28px; border-radius: 6px; }
+      #cycle-display { font-size: 22px; }
+      #registers { font-size: 20px; gap: 18px; }
+
+      /* Waveform */
+      .wave-pin-label { font-size: 18px; width: 80px; }
+      .wave-bar-wrap { height: 80px; }
+      .wave-label { font-size: 16px; }
+      .wave-value-tip { font-size: 16px; }
+      #result-banner { font-size: 32px; padding: 24px 56px; border-radius: 10px; letter-spacing: 4px; }
+      #code-error { font-size: 20px; }
+
+      /* Builder modal */
+      #builder-modal-sheet { max-width: 720px; max-height: 80vh; max-height: 80dvh; border-radius: 12px; }
+      #builder-modal-header { padding: 16px 22px; }
+      #builder-modal-title { font-size: 22px; }
+      #builder-modal-clear { font-size: 20px; padding: 8px 18px; border-radius: 5px; }
+      #builder-modal-close { font-size: 20px; padding: 8px 20px; border-radius: 5px; }
+      .builder { padding: 14px 18px; }
+      .slot-row { padding: 10px 0; min-height: 52px; gap: 8px; }
+      .slot-num { font-size: 18px; width: 28px; }
+      .slot-cell { font-size: 24px; padding: 8px 16px; min-width: 64px; border-radius: 5px; }
+      .slot-cond { font-size: 24px; width: 34px; height: 40px; border-radius: 5px; }
+      .slot-label-badge { font-size: 18px; padding: 4px 10px; border-radius: 5px; }
+      .builder-toggle { font-size: 18px; }
+      .builder-textarea { font-size: 24px; min-height: 200px; padding: 16px; border-radius: 5px; line-height: 1.6; }
+
+      /* Picker */
+      .picker-sheet { max-width: 600px; padding: 28px; border-radius: 12px; }
+      .picker-header { font-size: 20px; margin-bottom: 14px; }
+      .picker-grid { gap: 10px; }
+      .picker-item { padding: 18px 20px; gap: 16px; border-radius: 8px; }
+      .picker-item-label { font-size: 24px; min-width: 56px; }
+      .picker-item-desc { font-size: 20px; }
+      .numpad-sheet { max-width: 480px; }
+      .numpad-display { font-size: 40px; padding: 16px; border-radius: 8px; }
+      .numpad-grid { gap: 10px; }
+      .numpad-key { font-size: 30px; padding: 20px; border-radius: 8px; }
+      .numpad-clear { font-size: 22px; padding: 10px; }
+
+      /* Guide overlay */
+      .guide-tooltip { width: 520px; padding: 28px 32px; border-radius: 12px; }
+      .guide-text { font-size: 24px; line-height: 1.6; margin-bottom: 16px; }
+      .guide-text code { font-size: 22px; padding: 3px 8px; border-radius: 4px; }
+      .guide-dismiss { font-size: 22px; padding: 14px 28px; border-radius: 6px; }
+
+      /* Boot sequence */
+      #boot-terminal { width: min(860px, 85vw); padding: 40px; min-height: 340px; border-radius: 8px; }
+      #boot-output { font-size: 24px; line-height: 2.0; }
+      #boot-skip { font-size: 20px; margin-top: 24px; }
+
+      /* Tutorial */
+      #tutorial-card { max-width: 800px; padding: 40px; border-radius: 10px; }
+      #tutorial-card h2 { font-size: 28px; margin-bottom: 20px; }
+      #tutorial-card h3 { font-size: 24px; margin-top: 20px; margin-bottom: 8px; }
+      #tutorial-card p, #tutorial-card li { font-size: 22px; line-height: 1.7; margin-bottom: 10px; }
+      #tutorial-card ul { padding-left: 24px; margin-bottom: 10px; }
+      #tutorial-card code { font-size: 20px; padding: 2px 8px; border-radius: 4px; }
+      #tutorial-card pre { font-size: 20px; padding: 16px; border-radius: 5px; line-height: 1.6; }
+      .tutorial-nav { margin-top: 20px; padding-top: 16px; }
+      .tutorial-nav button { font-size: 22px; padding: 12px 28px; border-radius: 5px; }
+      .tutorial-dot { width: 14px; height: 14px; }
+      .tutorial-dots { gap: 10px; }
+    }
   </style>
 </head>
 <body>
