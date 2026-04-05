@@ -9,40 +9,45 @@ import { routeWire } from './wire-router.js';
 
 // ---------------------------------------------------------------------------
 // Component type definitions
+// Colors use CSS variables where possible; helper reads them at runtime.
 // ---------------------------------------------------------------------------
+
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || name;
+}
 
 const COMP_TYPES = {
   mcu: {
     w: 2, h: 2,
     label: 'MCU',
-    borderColor: '#39bae6',
-    bgColor: '#0d1a28',
+    get borderColor() { return cssVar('--accent'); },
+    get bgColor() { return cssVar('--board'); },
     icon: '\u2588\u2588',
-    iconColor: '#39bae6',
+    get iconColor() { return cssVar('--accent'); },
   },
   sensor: {
     w: 2, h: 1,
     label: 'SENSOR',
-    borderColor: '#5ccfe6',
-    bgColor: '#0d1820',
+    get borderColor() { return cssVar('--cyan'); },
+    get bgColor() { return cssVar('--board'); },
     icon: '\u2261',
-    iconColor: '#5ccfe6',
+    get iconColor() { return cssVar('--cyan'); },
   },
   light: {
     w: 2, h: 1,
     label: 'LIGHT',
-    borderColor: '#333',
-    bgColor: '#131820',
+    borderColor: cssVar('--border'),
+    get bgColor() { return cssVar('--board'); },
     icon: '\u2B24',
-    iconColor: '#5c6773',
+    get iconColor() { return cssVar('--dim'); },
   },
   output: {
     w: 2, h: 1,
     label: 'OUTPUT',
-    borderColor: '#e6b450',
-    bgColor: '#1a1810',
+    get borderColor() { return cssVar('--yellow'); },
+    get bgColor() { return cssVar('--board'); },
     icon: '\u25C9',
-    iconColor: '#e6b450',
+    get iconColor() { return cssVar('--yellow'); },
   },
 };
 
@@ -84,7 +89,8 @@ export function createCircuitBoard({
   let ghostEl = null;
   let statusEl = null;
 
-  const PIN_SIZE = 20;     // px — touch-friendly pin diameter
+  const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+  const PIN_SIZE = isDesktop ? 28 : 20;     // px — touch-friendly pin diameter
 
   // -----------------------------------------------------------------------
   // Render the board
@@ -100,7 +106,7 @@ export function createCircuitBoard({
     const cellByW = Math.floor((cw - 16) / gridCols);
     const cellByH = Math.floor((ch - 30) / gridRows); // 30 for status bar
     cellSize = Math.min(cellByW, cellByH);
-    cellSize = Math.max(44, Math.min(80, cellSize));
+    cellSize = Math.max(44, cellSize);
 
     const boardW = cellSize * gridCols;
     const boardH = cellSize * gridRows;
@@ -218,12 +224,12 @@ export function createCircuitBoard({
     val.id = `cb-val-${comp.id}`;
     if (comp.type === 'light') {
       val.textContent = 'needs 100';
-      val.style.color = '#e6b450';
+      val.style.color = cssVar('--yellow');
     } else if (comp.type === 'sensor') {
       val.textContent = '~';
     } else if (comp.type === 'mcu') {
       val.textContent = 'tap to code';
-      val.style.color = '#39bae6';
+      val.style.color = cssVar('--accent');
     }
     el.appendChild(val);
 
@@ -630,7 +636,7 @@ export function createCircuitBoard({
       if (comp.type === 'sensor' && level?.sources?.[comp.id]) {
         const v = level.sources[comp.id](Math.max(1, cycle));
         valEl.textContent = v;
-        valEl.style.color = '#5ccfe6';
+        valEl.style.color = cssVar('--cyan');
       }
 
       if (comp.type === 'light' || comp.type === 'output') {
@@ -641,17 +647,17 @@ export function createCircuitBoard({
         if (comp.type === 'light') {
           // Light intensity
           if (iconEl) {
-            iconEl.style.color = brightness > 0 ? '#7fd962' : '#333';
+            iconEl.style.color = brightness > 0 ? cssVar('--green') : 'transparent';
             iconEl.style.opacity = Math.max(0.15, brightness);
             iconEl.style.textShadow = brightness > 0.3
               ? `0 0 ${brightness * 12}px rgba(127,217,98,${brightness})` : 'none';
           }
           if (comp.el) {
-            comp.el.style.borderColor = brightness > 0.5 ? '#7fd962' : '#333';
+            comp.el.style.borderColor = brightness > 0.5 ? cssVar('--green') : cssVar('--border');
             comp.el.style.boxShadow = brightness > 0.3
               ? `0 0 ${brightness * 16}px rgba(127,217,98,${brightness * 0.4})` : 'none';
           }
-          valEl.style.color = brightness > 0 ? '#7fd962' : '#5c6773';
+          valEl.style.color = brightness > 0 ? cssVar('--green') : cssVar('--dim');
 
           // Show expected vs actual
           if (level?.expected?.[comp.id]) {
@@ -659,7 +665,7 @@ export function createCircuitBoard({
             valEl.textContent = v === expected ? `${v} \u2713` : `${v} (need ${expected})`;
           }
         } else {
-          valEl.style.color = v > 0 ? '#7fd962' : '#5c6773';
+          valEl.style.color = v > 0 ? cssVar('--green') : cssVar('--dim');
         }
       }
     }
@@ -688,22 +694,22 @@ export function createCircuitBoard({
 
       if (comp.type === 'light') {
         valEl.textContent = 'needs 100';
-        valEl.style.color = '#e6b450';
+        valEl.style.color = cssVar('--yellow');
         if (iconEl) {
-          iconEl.style.color = '#5c6773';
+          iconEl.style.color = cssVar('--dim');
           iconEl.style.opacity = '0.2';
           iconEl.style.textShadow = 'none';
         }
         if (comp.el) {
-          comp.el.style.borderColor = '#333';
+          comp.el.style.borderColor = cssVar('--border');
           comp.el.style.boxShadow = 'none';
         }
       } else if (comp.type === 'sensor') {
         valEl.textContent = '~';
-        valEl.style.color = '#5ccfe6';
+        valEl.style.color = cssVar('--cyan');
       } else if (comp.type === 'mcu') {
         valEl.textContent = 'tap to code';
-        valEl.style.color = '#39bae6';
+        valEl.style.color = cssVar('--accent');
       }
     }
 

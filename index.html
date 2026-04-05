@@ -20,6 +20,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
+      --text-scale: 1;
       --bg: #080c10;
       --board: #0d1117;
       --panel: #161d27;
@@ -40,7 +41,7 @@
       background: var(--bg);
       color: var(--text);
       font-family: var(--font);
-      font-size: 14px;
+      font-size: calc(clamp(14px, calc(8px + 1.6vw), 24px) * var(--text-scale));
       overflow: hidden;
       height: 100vh;
       height: 100dvh;
@@ -63,16 +64,16 @@
       display: flex;
       align-items: baseline;
       gap: 2px;
-      font-size: 12px;
+      font-size: calc(clamp(12px, calc(4.8px + 1.92vw), 24px) * var(--text-scale));
       line-height: 1;
     }
     .logo-si {
-      font-size: 20px;
+      font-size: calc(clamp(20px, calc(6.8px + 3.52vw), 42px) * var(--text-scale));
       font-weight: bold;
       color: var(--accent);
     }
     .logo-syn {
-      font-size: 14px;
+      font-size: calc(clamp(14px, calc(4.4px + 2.56vw), 30px) * var(--text-scale));
       font-weight: bold;
       color: var(--green);
       letter-spacing: 2px;
@@ -84,10 +85,28 @@
       width: 24px; height: 24px;
       border-radius: 50%;
       font-family: var(--font);
-      font-size: 12px;
+      font-size: calc(clamp(12px, calc(4.8px + 1.92vw), 24px) * var(--text-scale));
       font-weight: bold;
       cursor: pointer;
     }
+    #font-controls {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+      margin-right: 8px;
+    }
+    #font-controls button {
+      background: none;
+      color: var(--dim);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: var(--font);
+      font-size: 11px;
+      padding: 2px 6px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    #font-controls button:active { background: var(--border); color: var(--text); }
 
     /* --- Level Map: compact horizontal strip --- */
     #level-map {
@@ -134,7 +153,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 8px;
+      font-size: calc(clamp(8px, calc(2px + 1.6vw), 18px) * var(--text-scale));
       color: var(--dim);
       background: var(--panel);
     }
@@ -148,8 +167,21 @@
       color: var(--green);
       background: #1a3320;
     }
+    .level-dot.locked {
+      border-color: var(--border);
+      color: var(--dim);
+      background: var(--bg);
+      opacity: 0.4;
+      font-size: calc(clamp(9px, calc(3.6px + 1.44vw), 18px) * var(--text-scale));
+    }
+    .level-node.locked-node {
+      opacity: 0.5;
+      pointer-events: none;
+      cursor: default;
+    }
+    .level-node.locked-node .level-label { color: var(--dim); opacity: 0.5; }
     .level-label {
-      font-size: 7px;
+      font-size: calc(clamp(7px, calc(1.6px + 1.44vw), 16px) * var(--text-scale));
       color: var(--dim);
       margin-top: 2px;
       text-align: center;
@@ -170,13 +202,13 @@
     }
     #mission-title {
       color: var(--yellow);
-      font-size: 11px;
+      font-size: calc(clamp(11px, calc(4.4px + 1.76vw), 22px) * var(--text-scale));
       font-weight: bold;
       text-transform: uppercase;
       letter-spacing: 1px;
       white-space: nowrap;
     }
-    #mission-desc { color: var(--green); font-size: 11px; }
+    #mission-desc { color: var(--green); font-size: calc(clamp(11px, calc(4.4px + 1.76vw), 22px) * var(--text-scale)); }
     #mission-hint {
       display: none;
       padding: 5px 12px;
@@ -184,10 +216,12 @@
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
-    #mission-hint.visible { display: flex; align-items: baseline; gap: 6px; }
+    #mission-hint.visible { display: flex; align-items: baseline; gap: 6px; cursor: pointer; }
+    #mission-hint.collapsed .hint-text { display: none; }
+    #mission-hint.collapsed .hint-label::after { content: ' \25B6'; font-size: 0.8em; }
     #mission-hint .hint-label {
       color: var(--yellow);
-      font-size: 10px;
+      font-size: calc(clamp(10px, calc(4px + 1.6vw), 20px) * var(--text-scale));
       font-weight: bold;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -195,7 +229,7 @@
     }
     #mission-hint .hint-text {
       color: var(--yellow);
-      font-size: 11px;
+      font-size: calc(clamp(11px, calc(4.4px + 1.76vw), 22px) * var(--text-scale));
       opacity: 0.85;
     }
 
@@ -215,7 +249,7 @@
       border-radius: 4px;
       padding: 4px 10px;
       font-family: var(--font);
-      font-size: 10px;
+      font-size: calc(clamp(10px, calc(4px + 1.6vw), 20px) * var(--text-scale));
       color: var(--text);
       cursor: pointer;
       display: flex;
@@ -225,7 +259,7 @@
     .tray-item:active { background: var(--border); }
     .tray-item.active { border-color: var(--accent); color: var(--accent); }
     .tray-item.placed { opacity: 0.3; pointer-events: none; }
-    .tray-icon { font-size: 12px; }
+    .tray-icon { font-size: calc(clamp(12px, calc(4.8px + 1.92vw), 24px) * var(--text-scale)); }
 
     /* ===== GAME AREA — board + waveform overlay ===== */
     #game-area {
@@ -298,7 +332,7 @@
       background: var(--red);
       color: #fff;
       border: none;
-      font-size: 16px;
+      font-size: calc(clamp(16px, calc(13.6px + 0.64vw), 20px) * var(--text-scale));
       font-weight: bold;
       line-height: 1;
       display: flex;
@@ -325,18 +359,18 @@
     }
     .cb-comp.locked { cursor: default; }
     .cb-comp-label {
-      font-size: 9px;
+      font-size: calc(clamp(9px, calc(3.6px + 1.44vw), 18px) * var(--text-scale));
       text-transform: uppercase;
       letter-spacing: 1px;
       color: var(--dim);
     }
     .cb-comp-icon {
-      font-size: 20px;
+      font-size: calc(clamp(20px, calc(10.4px + 2.56vw), 36px) * var(--text-scale));
       line-height: 1;
       transition: color 0.3s, opacity 0.3s, text-shadow 0.3s;
     }
     .cb-comp-value {
-      font-size: 11px;
+      font-size: calc(clamp(11px, calc(5.6px + 1.44vw), 20px) * var(--text-scale));
       color: var(--text);
       font-weight: bold;
     }
@@ -364,7 +398,7 @@
     }
     .cb-pin-label {
       position: absolute;
-      font-size: 8px;
+      font-size: calc(clamp(8px, calc(3.2px + 1.28vw), 16px) * var(--text-scale));
       color: var(--dim);
       white-space: nowrap;
       pointer-events: none;
@@ -379,12 +413,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 9px;
+      font-size: calc(clamp(9px, calc(3.6px + 1.44vw), 18px) * var(--text-scale));
       color: var(--accent);
       text-transform: uppercase;
     }
     .cb-status {
-      font-size: 11px;
+      font-size: calc(clamp(11px, calc(5.6px + 1.44vw), 20px) * var(--text-scale));
       color: var(--yellow);
       text-align: center;
       min-height: 16px;
@@ -409,7 +443,7 @@
       border: 1px solid var(--border);
       padding: 6px 14px;
       font-family: var(--font);
-      font-size: 12px;
+      font-size: calc(clamp(12px, calc(6px + 1.6vw), 22px) * var(--text-scale));
       border-radius: 4px;
       cursor: pointer;
     }
@@ -422,17 +456,24 @@
       opacity: 0.6;
       cursor: not-allowed !important;
     }
-    #cycle-display { color: var(--dim); font-size: 11px; }
+    #cycle-display { color: var(--dim); font-size: calc(clamp(11px, calc(4.4px + 1.76vw), 22px) * var(--text-scale)); }
     #registers {
       display: flex;
       gap: 10px;
       margin-left: auto;
-      font-size: 10px;
+      font-size: calc(clamp(10px, calc(4px + 1.6vw), 20px) * var(--text-scale));
     }
     .reg { display: flex; gap: 3px; align-items: center; }
     .reg-name { color: var(--dim); text-transform: uppercase; }
     .reg-val { color: var(--accent); font-weight: bold; }
     .reg-val.changed { color: var(--yellow); }
+    .reg-pulse {
+      animation: reg-flash 0.4s ease-out;
+    }
+    @keyframes reg-flash {
+      0%   { background: rgba(230,180,80,0.3); border-radius: 3px; }
+      100% { background: transparent; }
+    }
     /* --- Waveform / Signal Monitor — semi-transparent overlay on board --- */
     #waveform-section {
       position: absolute;
@@ -462,7 +503,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 9px;
+      font-size: calc(clamp(9px, calc(3.6px + 1.44vw), 18px) * var(--text-scale));
       text-transform: uppercase;
       letter-spacing: 1px;
       color: var(--accent);
@@ -522,7 +563,7 @@
       pointer-events: none;
     }
     .wave-label {
-      font-size: 8px;
+      font-size: calc(clamp(8px, calc(3.2px + 1.28vw), 16px) * var(--text-scale));
       color: rgba(108,122,138,0.7);
       padding: 2px 0 3px;
       text-align: center;
@@ -531,7 +572,7 @@
     .wave-value-tip {
       position: absolute;
       top: -2px;
-      font-size: 8px;
+      font-size: calc(clamp(8px, calc(3.2px + 1.28vw), 16px) * var(--text-scale));
       color: var(--text);
       pointer-events: none;
       opacity: 0;
@@ -545,7 +586,7 @@
       transform: translate(-50%, -50%);
       text-align: center;
       padding: 12px 32px;
-      font-size: 16px;
+      font-size: calc(clamp(16px, calc(6.4px + 2.56vw), 32px) * var(--text-scale));
       font-weight: bold;
       display: none;
       letter-spacing: 3px;
@@ -567,8 +608,41 @@
       border: 1px solid var(--red);
       box-shadow: 0 0 20px rgba(240,113,120,0.3);
     }
+    #next-challenge {
+      position: absolute;
+      top: calc(50% + 40px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 21;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 24px;
+      margin-top: 16px;
+      background: rgba(26,51,32,0.85);
+      border: 1px solid var(--green);
+      border-radius: 6px;
+      box-shadow: 0 0 12px rgba(127,217,98,0.2);
+      animation: next-pulse 2s ease-in-out infinite;
+    }
+    #next-challenge:active { background: rgba(26,51,32,1); }
+    .next-label {
+      color: var(--green);
+      font-size: calc(clamp(11px, calc(4.4px + 1.76vw), 22px) * var(--text-scale));
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .next-arrow {
+      color: var(--green);
+      font-size: calc(clamp(10px, calc(4px + 1.6vw), 20px) * var(--text-scale));
+    }
+    @keyframes next-pulse {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
     #code-error {
-      font-size: 11px;
+      font-size: calc(clamp(11px, calc(5.6px + 1.44vw), 20px) * var(--text-scale));
       color: var(--red);
       padding: 2px 12px;
       display: none;
@@ -616,7 +690,7 @@
       flex-shrink: 0;
     }
     #builder-modal-title {
-      font-size: 11px;
+      font-size: calc(clamp(11px, calc(4.4px + 1.76vw), 22px) * var(--text-scale));
       color: var(--accent);
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -626,7 +700,7 @@
       border: 1px solid var(--red, #e74c3c);
       color: var(--red, #e74c3c);
       font-family: var(--font);
-      font-size: 11px;
+      font-size: calc(clamp(11px, calc(5.6px + 1.44vw), 20px) * var(--text-scale));
       padding: 4px 10px;
       border-radius: 3px;
       cursor: pointer;
@@ -640,7 +714,7 @@
       border: 1px solid var(--dim);
       color: var(--dim);
       font-family: var(--font);
-      font-size: 11px;
+      font-size: calc(clamp(11px, calc(5.6px + 1.44vw), 20px) * var(--text-scale));
       padding: 4px 12px;
       border-radius: 3px;
       cursor: pointer;
@@ -667,7 +741,7 @@
       border-bottom: 1px solid rgba(255,255,255,0.03);
       min-height: 34px;
     }
-    .slot-row.empty { opacity: 0.25; }
+    .slot-row.empty { opacity: 0.5; }
     .slot-row.locked { opacity: 0.8; }
     .slot-row.highlight {
       background: rgba(57, 186, 230, 0.08);
@@ -684,7 +758,7 @@
       50% { box-shadow: 0 0 8px 2px rgba(230,180,80,0.3); }
     }
     .slot-num {
-      font-size: 10px;
+      font-size: calc(clamp(10px, calc(5.2px + 1.28vw), 18px) * var(--text-scale));
       color: var(--dim);
       width: 18px;
       text-align: right;
@@ -697,7 +771,7 @@
       border-radius: 3px;
       color: var(--dim);
       font-family: var(--font);
-      font-size: 14px;
+      font-size: calc(clamp(14px, calc(8px + 1.6vw), 24px) * var(--text-scale));
       font-weight: bold;
       cursor: pointer;
       flex-shrink: 0;
@@ -713,7 +787,7 @@
       border-radius: 3px;
       padding: 4px 8px;
       font-family: var(--font);
-      font-size: 13px;
+      font-size: calc(clamp(13px, calc(6.4px + 1.76vw), 24px) * var(--text-scale));
       color: var(--text);
       cursor: pointer;
       min-width: 46px;
@@ -722,9 +796,19 @@
     .slot-cell:active { background: var(--border); }
     .slot-op { color: var(--accent); font-weight: bold; min-width: 40px; }
     .slot-arg { color: var(--green); }
-    .slot-cell.placeholder { color: var(--dim); border-style: dashed; }
+    .slot-cell.placeholder {
+      color: var(--accent);
+      border-style: dashed;
+      border-color: var(--accent);
+      opacity: 0.6;
+      animation: placeholder-pulse 2s ease-in-out infinite;
+    }
+    @keyframes placeholder-pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
     .slot-label-badge {
-      font-size: 10px;
+      font-size: calc(clamp(10px, calc(5.2px + 1.28vw), 18px) * var(--text-scale));
       color: var(--yellow);
       margin-left: auto;
       padding: 2px 6px;
@@ -736,7 +820,7 @@
       border: none;
       color: var(--dim);
       font-family: var(--font);
-      font-size: 10px;
+      font-size: calc(clamp(10px, calc(5.2px + 1.28vw), 18px) * var(--text-scale));
       cursor: pointer;
       padding: 6px;
       text-align: right;
@@ -749,7 +833,7 @@
       border: 1px solid var(--border);
       padding: 8px;
       font-family: var(--font);
-      font-size: 14px;
+      font-size: calc(clamp(14px, calc(8px + 1.6vw), 24px) * var(--text-scale));
       line-height: 1.5;
       resize: none;
       border-radius: 3px;
@@ -780,7 +864,7 @@
       box-shadow: 0 8px 32px rgba(0,0,0,0.5);
     }
     .picker-header {
-      font-size: 10px;
+      font-size: calc(clamp(10px, calc(4px + 1.6vw), 20px) * var(--text-scale));
       text-transform: uppercase;
       letter-spacing: 1px;
       color: var(--dim);
@@ -801,15 +885,15 @@
       color: var(--text);
     }
     .picker-item:active { background: var(--border); }
-    .picker-item-label { color: var(--accent); font-weight: bold; font-size: 14px; min-width: 36px; }
-    .picker-item-desc { color: var(--dim); font-size: 12px; }
+    .picker-item-label { color: var(--accent); font-weight: bold; font-size: calc(clamp(14px, calc(8px + 1.6vw), 24px) * var(--text-scale)); min-width: 36px; }
+    .picker-item-desc { color: var(--dim); font-size: calc(clamp(12px, calc(7.2px + 1.28vw), 20px) * var(--text-scale)); }
     .picker-clear { border-color: var(--red) !important; }
     .picker-clear .picker-item-label { color: var(--red); }
 
     /* Number pad (uses picker-sheet base, adds centered layout) */
     .numpad-sheet { text-align: center; max-width: 300px; }
     .numpad-display {
-      font-size: 24px;
+      font-size: calc(clamp(24px, calc(14.4px + 2.56vw), 40px) * var(--text-scale));
       color: var(--green);
       padding: 8px;
       background: var(--bg);
@@ -824,7 +908,7 @@
       border-radius: 4px;
       padding: 12px;
       font-family: var(--font);
-      font-size: 18px;
+      font-size: calc(clamp(18px, calc(10.8px + 1.92vw), 30px) * var(--text-scale));
       color: var(--text);
       cursor: pointer;
     }
@@ -835,7 +919,7 @@
       border: none;
       color: var(--dim);
       font-family: var(--font);
-      font-size: 12px;
+      font-size: calc(clamp(12px, calc(6px + 1.6vw), 22px) * var(--text-scale));
       cursor: pointer;
       padding: 8px;
       margin-top: 4px;
@@ -871,7 +955,7 @@
     }
     .guide-text {
       color: var(--text);
-      font-size: 13px;
+      font-size: calc(clamp(13px, calc(6.4px + 1.76vw), 24px) * var(--text-scale));
       line-height: 1.5;
       margin-bottom: 10px;
     }
@@ -881,7 +965,7 @@
       color: var(--green);
       padding: 1px 5px;
       border-radius: 2px;
-      font-size: 12px;
+      font-size: calc(clamp(12px, calc(6px + 1.6vw), 22px) * var(--text-scale));
     }
     .guide-dismiss {
       background: var(--bg);
@@ -889,12 +973,73 @@
       color: var(--accent);
       padding: 6px 16px;
       font-family: var(--font);
-      font-size: 12px;
+      font-size: calc(clamp(12px, calc(6px + 1.6vw), 22px) * var(--text-scale));
       border-radius: 4px;
       cursor: pointer;
       width: 100%;
     }
     .guide-dismiss:active { background: var(--border); }
+
+    /* --- Boot Sequence Overlay --- */
+    #boot-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Courier New', monospace;
+      transition: opacity 0.6s ease;
+    }
+    #boot-overlay.boot-fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #boot-terminal {
+      width: min(480px, 90vw);
+      min-height: 200px;
+      max-height: 70vh;
+      overflow: hidden;
+      padding: 20px;
+      border: 1px solid #1a3a2a;
+      background: rgba(0, 8, 0, 0.95);
+      border-radius: 4px;
+      box-shadow: 0 0 40px rgba(0, 100, 0, 0.2), inset 0 0 40px rgba(0,0,0,0.5);
+    }
+    #boot-output {
+      color: #00cc44;
+      font-size: calc(clamp(13px, calc(6.4px + 1.76vw), 24px) * var(--text-scale));
+      line-height: 1.7;
+    }
+    .boot-line {
+      display: block;
+      white-space: pre;
+      min-height: 1.7em;
+    }
+    #boot-cursor {
+      display: inline-block;
+      color: #00cc44;
+      animation: cursor-blink 0.8s step-end infinite;
+    }
+    @keyframes cursor-blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    #boot-skip {
+      margin-top: 16px;
+      color: #1a4a2a;
+      font-size: calc(clamp(11px, calc(5.6px + 1.44vw), 20px) * var(--text-scale));
+      font-family: 'Courier New', monospace;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      animation: skip-pulse 2s ease-in-out infinite;
+    }
+    @keyframes skip-pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.9; }
+    }
 
     /* --- Tutorial / Reference overlay (centered card) --- */
     #tutorial-overlay {
@@ -922,21 +1067,21 @@
     }
     #tutorial-card h2 {
       color: var(--accent);
-      font-size: 14px;
+      font-size: calc(clamp(14px, calc(5.6px + 2.24vw), 28px) * var(--text-scale));
       margin-bottom: 12px;
       text-transform: uppercase;
       letter-spacing: 1px;
     }
     #tutorial-card h3 {
       color: var(--yellow);
-      font-size: 12px;
+      font-size: calc(clamp(12px, calc(4.8px + 1.92vw), 24px) * var(--text-scale));
       margin-top: 12px;
       margin-bottom: 4px;
       text-transform: uppercase;
     }
     #tutorial-card p, #tutorial-card li {
       color: var(--text);
-      font-size: 12px;
+      font-size: calc(clamp(12px, calc(6px + 1.6vw), 22px) * var(--text-scale));
       line-height: 1.6;
       margin-bottom: 6px;
     }
@@ -946,7 +1091,7 @@
       color: var(--green);
       padding: 1px 5px;
       border-radius: 2px;
-      font-size: 11px;
+      font-size: calc(clamp(11px, calc(5.6px + 1.44vw), 20px) * var(--text-scale));
     }
     #tutorial-card pre {
       background: var(--bg);
@@ -955,7 +1100,7 @@
       padding: 8px;
       margin: 6px 0;
       color: var(--green);
-      font-size: 11px;
+      font-size: calc(clamp(11px, calc(5.6px + 1.44vw), 20px) * var(--text-scale));
       line-height: 1.5;
       overflow-x: auto;
     }
@@ -973,7 +1118,7 @@
       border: 1px solid var(--accent);
       padding: 6px 16px;
       font-family: var(--font);
-      font-size: 12px;
+      font-size: calc(clamp(12px, calc(6px + 1.6vw), 22px) * var(--text-scale));
       border-radius: 3px;
       cursor: pointer;
     }
@@ -981,11 +1126,111 @@
     .tutorial-dots { display: flex; gap: 6px; }
     .tutorial-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
     .tutorial-dot.active { background: var(--accent); }
+
+    /* ===== RESPONSIVE — scale up spacing/layout for laptops / desktops ===== */
+    /* Font sizes now use clamp() in base styles for fluid scaling */
+    @media (min-width: 768px) {
+      /* Header */
+      header { padding: 14px 28px; }
+      #btn-help { width: 44px; height: 44px; }
+      #font-controls button { font-size: 18px; padding: 4px 10px; }
+
+      /* Level map */
+      #level-map { padding: 14px 28px 10px; }
+      #level-map-line { top: 24px; }
+      .level-dot { width: 42px; height: 42px; border-width: 3px; }
+      .level-label { max-width: 100px; margin-top: 4px; }
+      .level-node { min-width: 68px; max-width: 120px; }
+      .level-line-seg { height: 3px; }
+
+      /* Mission */
+      #mission { padding: 12px 28px; gap: 16px; }
+      #mission-hint { padding: 12px 28px; }
+
+      /* Component tray */
+      #component-tray { padding: 12px 28px; gap: 14px; }
+      .tray-item { padding: 10px 20px; gap: 8px; border-radius: 6px; }
+
+      /* Circuit board */
+      .circuit-board-container { padding: 20px; gap: 10px; }
+      .cb-comp { border-width: 3px; border-radius: 10px; gap: 4px; }
+      .cb-comp-label { letter-spacing: 2px; }
+      .cb-pin { border-width: 3px; }
+      .cb-ghost { border-width: 3px; border-radius: 10px; }
+      .cb-status { min-height: 24px; }
+      .cb-svg .cb-wire { stroke-width: 4; }
+      .cb-svg .cb-wire.selected { stroke-width: 5.5; }
+      .cb-wire-delete { width: 32px; height: 32px; }
+
+      /* Bottom bar */
+      #controls { padding: 14px 28px; gap: 14px; }
+      #controls button { padding: 12px 28px; border-radius: 6px; }
+      #registers { gap: 18px; }
+
+      /* Waveform */
+      .wave-pin-label { width: 80px; }
+      .wave-bar-wrap { height: 80px; }
+      #result-banner { padding: 24px 56px; border-radius: 10px; letter-spacing: 4px; }
+      #next-challenge { top: calc(50% + 56px); padding: 14px 32px; gap: 12px; border-radius: 8px; }
+
+      /* Builder modal */
+      #builder-modal-sheet { max-width: 720px; max-height: 80vh; max-height: 80dvh; border-radius: 12px; }
+      #builder-modal-header { padding: 16px 22px; }
+      #builder-modal-clear { padding: 8px 18px; border-radius: 5px; }
+      #builder-modal-close { padding: 8px 20px; border-radius: 5px; }
+      .builder { padding: 14px 18px; }
+      .slot-row { padding: 10px 0; min-height: 52px; gap: 8px; }
+      .slot-num { width: 28px; }
+      .slot-cell { padding: 8px 16px; min-width: 64px; border-radius: 5px; }
+      .slot-cond { width: 34px; height: 40px; border-radius: 5px; }
+      .slot-label-badge { padding: 4px 10px; border-radius: 5px; }
+      .builder-textarea { min-height: 200px; padding: 16px; border-radius: 5px; line-height: 1.6; }
+
+      /* Picker */
+      .picker-sheet { max-width: 600px; padding: 28px; border-radius: 12px; }
+      .picker-header { margin-bottom: 14px; }
+      .picker-grid { gap: 10px; }
+      .picker-item { padding: 18px 20px; gap: 16px; border-radius: 8px; }
+      .picker-item-label { min-width: 56px; }
+      .numpad-sheet { max-width: 480px; }
+      .numpad-display { padding: 16px; border-radius: 8px; }
+      .numpad-grid { gap: 10px; }
+      .numpad-key { padding: 20px; border-radius: 8px; }
+      .numpad-clear { padding: 10px; }
+
+      /* Guide overlay */
+      .guide-tooltip { width: 520px; padding: 28px 32px; border-radius: 12px; }
+      .guide-text { line-height: 1.6; margin-bottom: 16px; }
+      .guide-text code { padding: 3px 8px; border-radius: 4px; }
+      .guide-dismiss { padding: 14px 28px; border-radius: 6px; }
+
+      /* Boot sequence */
+      #boot-terminal { width: min(860px, 85vw); padding: 40px; min-height: 340px; border-radius: 8px; }
+      #boot-output { line-height: 2.0; }
+      #boot-skip { margin-top: 24px; }
+
+      /* Tutorial */
+      #tutorial-card { max-width: 800px; padding: 40px; border-radius: 10px; }
+      #tutorial-card h2 { margin-bottom: 20px; }
+      #tutorial-card h3 { margin-top: 20px; margin-bottom: 8px; }
+      #tutorial-card p, #tutorial-card li { line-height: 1.7; margin-bottom: 10px; }
+      #tutorial-card ul { padding-left: 24px; margin-bottom: 10px; }
+      #tutorial-card code { padding: 2px 8px; border-radius: 4px; }
+      #tutorial-card pre { padding: 16px; border-radius: 5px; line-height: 1.6; }
+      .tutorial-nav { margin-top: 20px; padding-top: 16px; }
+      .tutorial-nav button { padding: 12px 28px; border-radius: 5px; }
+      .tutorial-dot { width: 14px; height: 14px; }
+      .tutorial-dots { gap: 10px; }
+    }
   </style>
 </head>
 <body>
   <header>
     <h1><span class="logo-si">Si</span><span class="logo-syn">SYN</span></h1>
+    <div id="font-controls">
+      <button id="btn-font-down" title="Decrease text size">A-</button>
+      <button id="btn-font-up" title="Increase text size">A+</button>
+    </div>
     <button id="btn-help" title="Reference Guide">?</button>
   </header>
 
@@ -1053,6 +1298,24 @@
     </div>
   </div>
 
+  <script>
+    (function() {
+      var KEY = 'si-syn-text-scale';
+      var scale = parseFloat(localStorage.getItem(KEY)) || 1;
+      document.documentElement.style.setProperty('--text-scale', scale);
+
+      document.getElementById('btn-font-up').addEventListener('click', function() {
+        scale = Math.min(scale + 0.1, 2);
+        document.documentElement.style.setProperty('--text-scale', scale);
+        localStorage.setItem(KEY, scale);
+      });
+      document.getElementById('btn-font-down').addEventListener('click', function() {
+        scale = Math.max(scale - 0.1, 0.5);
+        document.documentElement.style.setProperty('--text-scale', scale);
+        localStorage.setItem(KEY, scale);
+      });
+    })();
+  </script>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>

@@ -12,8 +12,10 @@ import { level05 } from './levels/level05.js';
 import { level06 } from './levels/level06.js';
 import { level07 } from './levels/level07.js';
 import { level08 } from './levels/level08.js';
-import { trainingT1, trainingT2, trainingT3, trainingT4, trainingT5 } from './levels/training.js';
+import { trainingT1,
+         bootB1, bootB2, bootB3, bootB4, bootB5, bootB6 } from './levels/training.js';
 import { TUTORIAL_PAGES } from './tutorial.js';
+import { showBootCinematic, showTrainingComplete } from './ui/boot.js';
 import { createBuilder } from './ui/builder.js';
 import { createCircuitBoard } from './ui/circuit-board.js';
 import { createGuide, runGuideSequence } from './ui/guide.js';
@@ -22,10 +24,11 @@ import { createGuide, runGuideSequence } from './ui/guide.js';
 // Level registry — training first, then puzzles
 // ---------------------------------------------------------------------------
 
-const LEVELS = [
-  trainingT1, trainingT2, trainingT3, trainingT4, trainingT5,
-  level01, level02, level03, level04, level05, level06, level07, level08,
-];
+const BOOT_LEVELS = [bootB1, bootB2, bootB3, bootB4, bootB5, bootB6];
+const TRAINING_LEVELS = [trainingT1];
+const PUZZLE_LEVELS = [level01, level02, level03, level04, level05, level06, level07, level08];
+
+const LEVELS = [...BOOT_LEVELS, ...TRAINING_LEVELS, ...PUZZLE_LEVELS];
 
 // ---------------------------------------------------------------------------
 // DOM refs
@@ -96,6 +99,30 @@ function markLevelPassed(id) {
   const d = loadSavedData(); if (!d.passed) d.passed = {}; d.passed[id] = true; saveData(d);
 }
 function isLevelPassed(id) { return loadSavedData().passed?.[id] === true; }
+function isBootComplete() { return loadSavedData().boot_complete === true; }
+function setBootComplete() {
+  const d = loadSavedData(); d.boot_complete = true; saveData(d);
+}
+
+// ---------------------------------------------------------------------------
+// Unlock logic — levels unlock in order (boot → training → puzzle)
+// ---------------------------------------------------------------------------
+
+function getUnlockedIndex() {
+  // Find the furthest level that has been passed
+  let maxPassed = -1;
+  for (let i = 0; i < LEVELS.length; i++) {
+    if (isLevelPassed(LEVELS[i].id)) maxPassed = i;
+  }
+  // Player can access: all passed levels + the next one
+  return maxPassed + 1;
+}
+
+function isLevelUnlocked(levelId) {
+  const idx = LEVELS.findIndex(l => l.id === levelId);
+  if (idx === -1) return false;
+  return idx <= getUnlockedIndex();
+}
 
 // ---------------------------------------------------------------------------
 // Level map
@@ -106,14 +133,19 @@ function renderLevelMap() {
 
   // Create nodes
   LEVELS.forEach((level) => {
+    const unlocked = isLevelUnlocked(level.id);
+    const passed = isLevelPassed(level.id);
+    const isActive = currentLevel === level;
+
     const node = document.createElement('div');
-    node.className = 'level-node' + (currentLevel === level ? ' active' : '');
+    node.className = 'level-node' + (isActive ? ' active' : '') + (!unlocked ? ' locked-node' : '');
 
     const dot = document.createElement('div');
     dot.className = 'level-dot';
-    if (currentLevel === level) dot.classList.add('active');
-    if (isLevelPassed(level.id)) dot.classList.add('passed');
-    dot.textContent = level.id;
+    if (isActive) dot.classList.add('active');
+    if (passed) dot.classList.add('passed');
+    if (!unlocked) dot.classList.add('locked');
+    dot.textContent = !unlocked ? '🔒' : level.id;
     node.appendChild(dot);
 
     const label = document.createElement('div');
@@ -121,7 +153,11 @@ function renderLevelMap() {
     label.textContent = level.name;
     node.appendChild(label);
 
-    node.addEventListener('click', () => loadLevel(level.id));
+    if (unlocked) {
+      node.addEventListener('click', () => loadLevel(level.id));
+    } else {
+      node.title = 'Complete previous levels to unlock';
+    }
     levelMapEl.appendChild(node);
   });
 
@@ -336,6 +372,10 @@ builderModalClear.addEventListener('click', () => {
 
 function loadLevel(levelId) {
   stopRun();
+  resultBanner.className = '';
+  resultBanner.style.display = 'none';
+  const oldPrompt = document.getElementById('next-challenge');
+  if (oldPrompt) oldPrompt.remove();
   currentLevel = LEVELS.find(l => l.id === levelId);
   if (!currentLevel) return;
 
@@ -344,8 +384,10 @@ function loadLevel(levelId) {
   if (currentLevel.hint) {
     hintText.textContent = currentLevel.hint;
     missionHint.classList.add('visible');
+    missionHint.classList.add('collapsed');
   } else {
     missionHint.classList.remove('visible');
+    missionHint.classList.remove('collapsed');
   }
   codeError.style.display = 'none';
 
@@ -490,13 +532,25 @@ function updateRegisters(mcu) {
   }
   const { acc, dat } = mcu.registers;
   const pc = mcu.pc;
-  regAcc.textContent = acc;
-  regDat.textContent = dat;
-  regPc.textContent = pc;
 
-  regAcc.className = acc !== prevRegs.acc ? 'reg-val changed' : 'reg-val';
-  regDat.className = dat !== prevRegs.dat ? 'reg-val changed' : 'reg-val';
+  // Pulse animation when value changes
+  function pulseReg(el, newVal, oldVal) {
+    el.textContent = newVal;
+    if (newVal !== oldVal) {
+      el.classList.remove('reg-pulse');
+      // Force reflow to restart animation
+      void el.offsetWidth;
+      el.classList.add('reg-val', 'changed', 'reg-pulse');
+    } else {
+      el.className = 'reg-val';
+    }
+  }
+
+  pulseReg(regAcc, acc, prevRegs.acc);
+  pulseReg(regDat, dat, prevRegs.dat);
+  regPc.textContent = pc;
   regPc.className = pc !== prevRegs.pc ? 'reg-val changed' : 'reg-val';
+
   prevRegs = { acc, dat, pc };
 }
 
@@ -609,8 +663,10 @@ function showResult() {
   if (sim.verifier.passed) {
     resultBanner.textContent = 'MISSION COMPLETE';
     resultBanner.className = 'pass';
+    const wasAlreadyPassed = isLevelPassed(currentLevel.id);
     markLevelPassed(currentLevel.id);
     renderLevelMap();
+    onLevelPassed(currentLevel.id, wasAlreadyPassed);
   } else {
     resultBanner.textContent = 'SIGNAL MISMATCH';
     resultBanner.className = 'fail';
@@ -622,6 +678,9 @@ function showResult() {
 // Waveform
 // ---------------------------------------------------------------------------
 
+// Waveform channel colors for multi-pin levels
+const WAVE_CHANNEL_COLORS = ['#7fd962', '#39bae6', '#e6b450', '#5ccfe6', '#f07178'];
+
 function renderWaveform() {
   waveformEl.innerHTML = '';
   if (!currentLevel) return;
@@ -631,14 +690,29 @@ function renderWaveform() {
   const maxVal = 100;
   const barMax = 48; // max bar height in px
 
-  for (const pinId of pinIds) {
+  for (let ci = 0; ci < pinIds.length; ci++) {
+    const pinId = pinIds[ci];
+    const channelColor = WAVE_CHANNEL_COLORS[ci % WAVE_CHANNEL_COLORS.length];
+
     const section = document.createElement('div');
     section.className = 'wave-pin-section';
 
-    // Pin label on the left
+    // Pin label on the left — styled with channel color
     const label = document.createElement('div');
     label.className = 'wave-pin-label';
-    label.textContent = pinId;
+    label.style.color = channelColor;
+    label.style.borderRightColor = channelColor + '44';
+
+    const labelName = document.createElement('div');
+    labelName.style.fontWeight = 'bold';
+    labelName.textContent = pinId.toUpperCase();
+    label.appendChild(labelName);
+
+    // Channel index indicator (small dot)
+    const dot = document.createElement('div');
+    dot.style.cssText = `width:6px;height:6px;border-radius:50%;background:${channelColor};margin:2px auto 0;`;
+    label.appendChild(dot);
+
     section.appendChild(label);
 
     // Track area with columns
@@ -659,9 +733,13 @@ function renderWaveform() {
         const { actual, pass } = cycleData.pins[pinId];
         const actualHeight = Math.max(2, (Math.abs(actual) / maxVal) * barMax);
 
-        // Actual value bar
+        // Actual value bar — use channel color for pass, red for fail
         const bar = document.createElement('div');
         bar.className = `wave-bar ${pass ? 'pass' : 'fail'}`;
+        if (pass) {
+          bar.style.background = `linear-gradient(to top, ${channelColor}, ${channelColor}80)`;
+          bar.style.boxShadow = `0 0 8px ${channelColor}4d`;
+        }
         bar.style.height = actualHeight + 'px';
         barWrap.appendChild(bar);
 
@@ -751,6 +829,56 @@ btnStep.addEventListener('click', () => {
   stepOnce();
 });
 btnReset.addEventListener('click', resetSim);
+missionHint.addEventListener('click', () => {
+  missionHint.classList.toggle('collapsed');
+});
+
+// ---------------------------------------------------------------------------
+// Boot training: auto-advance through B1-B6 and mark complete
+// ---------------------------------------------------------------------------
+
+function advanceToNextLevel() {
+  const idx = LEVELS.findIndex(l => l.id === currentLevel.id);
+  if (idx < LEVELS.length - 1) {
+    loadLevel(LEVELS[idx + 1].id);
+  }
+}
+
+function onLevelPassed(levelId, wasAlreadyPassed) {
+  const bIdx = BOOT_LEVELS.findIndex(l => l.id === levelId);
+  if (!wasAlreadyPassed && bIdx !== -1 && bIdx < BOOT_LEVELS.length - 1) {
+    // Auto-advance to next boot lesson (first time only)
+    setTimeout(() => loadLevel(BOOT_LEVELS[bIdx + 1].id), 800);
+    return;
+  }
+  if (!wasAlreadyPassed && bIdx === BOOT_LEVELS.length - 1) {
+    // Last boot lesson — show training complete screen then load level 01
+    setTimeout(() => {
+      setBootComplete();
+      showTrainingComplete(() => {
+        // Mark all boot levels complete in the map
+        renderLevelMap();
+        loadLevel(TRAINING_LEVELS[0].id);
+      });
+    }, 600);
+    return;
+  }
+  // Boot replays also fall through here
+  // Training & puzzle levels: show next-challenge prompt below banner
+  const idx = LEVELS.findIndex(l => l.id === levelId);
+  const nextLevel = idx < LEVELS.length - 1 ? LEVELS[idx + 1] : null;
+  if (!nextLevel) return;
+
+  const prompt = document.createElement('div');
+  prompt.id = 'next-challenge';
+  prompt.innerHTML = `<span class="next-label">${nextLevel.name}</span> <span class="next-arrow">\u25B6</span>`;
+  prompt.addEventListener('click', () => {
+    prompt.remove();
+    advanceToNextLevel();
+  });
+  // Place it below the banner inside #game-area
+  document.getElementById('game-area').appendChild(prompt);
+}
 
 // ---------------------------------------------------------------------------
 // Init
@@ -759,6 +887,16 @@ btnReset.addEventListener('click', resetSim);
 // Defer to ensure layout is computed (iOS Safari needs a paint cycle first)
 requestAnimationFrame(() => {
   requestAnimationFrame(() => {
-    loadLevel(LEVELS[0].id);
+    if (!isBootComplete()) {
+      // First time: show cold boot cinematic, then start B1
+      showBootCinematic(() => {
+        loadLevel(BOOT_LEVELS[0].id);
+      });
+    } else {
+      // Returning player: start at first unfinished level
+      const unlockedIdx = getUnlockedIndex();
+      const startLevel = LEVELS[Math.min(unlockedIdx, LEVELS.length - 1)];
+      loadLevel(startLevel.id);
+    }
   });
 });

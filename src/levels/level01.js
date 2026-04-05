@@ -45,4 +45,5 @@ export const level01 = {
     inputs: [],
     outputs: [{ id: 'light', name: 'LIGHT', pin: 'p0' }],
   },
+
 };
