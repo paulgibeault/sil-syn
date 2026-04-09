@@ -744,7 +744,7 @@ export function createCircuitBoard({
   // Keyboard shortcuts for wire management
   // -----------------------------------------------------------------------
 
-  document.addEventListener('keydown', (e) => {
+  function onKeyDown(e) {
     if (!selectedWire) return;
     if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault();
@@ -758,13 +758,20 @@ export function createCircuitBoard({
     } else if (e.key === 'Escape') {
       deselectWire();
     }
-  });
+  }
+  document.addEventListener('keydown', onKeyDown);
 
   // -----------------------------------------------------------------------
   // Public API
   // -----------------------------------------------------------------------
 
   render();
+
+  /** Tear down event listeners and DOM content to prevent leaks. */
+  function destroy() {
+    document.removeEventListener('keydown', onKeyDown);
+    container.innerHTML = '';
+  }
 
   return {
     render,
@@ -779,6 +786,7 @@ export function createCircuitBoard({
     resetValues,
     rerouteAllWires,
     setStatus,
+    destroy,
     get placed() { return placed; },
     get wires() { return wires; },
     get mode() { return mode; },

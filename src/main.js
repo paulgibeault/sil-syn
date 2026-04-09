@@ -192,6 +192,9 @@ function renderLevelMap() {
 function setupCircuitBoard() {
   if (!currentLevel) return;
 
+  // Tear down the previous board to remove stale event listeners and DOM nodes
+  if (board) board.destroy();
+
   const boardConfig = currentLevel.boardConfig || inferBoardConfig();
   currentBoardConfig = boardConfig;
 
