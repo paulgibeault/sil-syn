@@ -687,8 +687,20 @@ function renderWaveform() {
 
   const summary = sim ? sim.verifier.summary : [];
   const pinIds = Object.keys(currentLevel.expected);
-  const maxVal = 100;
   const barMax = 48; // max bar height in px
+
+  // Auto-scale: find the max absolute value across expected and actual data
+  let maxVal = 1; // floor at 1 to avoid division by zero
+  for (const pinId of pinIds) {
+    for (let cycle = 1; cycle <= currentLevel.testCycles; cycle++) {
+      const expectedVal = currentLevel.expected[pinId](cycle);
+      maxVal = Math.max(maxVal, Math.abs(expectedVal));
+      const cycleData = summary.find(s => s.cycle === cycle);
+      if (cycleData && cycleData.pins[pinId]) {
+        maxVal = Math.max(maxVal, Math.abs(cycleData.pins[pinId].actual));
+      }
+    }
+  }
 
   for (let ci = 0; ci < pinIds.length; ci++) {
     const pinId = pinIds[ci];
