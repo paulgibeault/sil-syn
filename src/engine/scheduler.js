@@ -8,7 +8,7 @@
  *   4. Notify listeners
  */
 
-import { stepMCU } from './mcu.js';
+import { stepMCU, MCUState } from './mcu.js';
 import { resolveXBus } from './xbus.js';
 
 /**
@@ -62,7 +62,7 @@ export function createScheduler({ mcus, xbusWires = [], board, onTick }) {
       for (const mcu of mcus) {
         mcu.registers = { acc: 0, dat: 0 };
         mcu.pc = 0;
-        mcu.state = 'READY';
+        mcu.state = MCUState.READY;
         mcu.sleepTimer = 0;
         mcu.condFlag = null;
         mcu.pendingXBus = null;
