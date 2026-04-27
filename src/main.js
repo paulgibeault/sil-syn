@@ -2,6 +2,12 @@
  * Main entry point — wires the game UI to the simulation engine.
  */
 
+// In sandboxed-iframe context (launcher), wait for postMessage-backed
+// localStorage to hydrate before any save data is read.
+if (typeof window !== 'undefined' && window.__storageReady) {
+  await window.__storageReady;
+}
+
 import { createMCU, parseProgram } from './engine/mcu.js';
 import { runLevel } from './engine/verifier.js';
 import { level01 } from './levels/level01.js';
