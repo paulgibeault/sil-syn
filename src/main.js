@@ -824,6 +824,8 @@ function renderWaveform() {
 // Reference guide (? button)
 // ---------------------------------------------------------------------------
 
+let tutorialPage = 0;
+
 function showTutorial(page = 0) {
   tutorialPage = Math.max(0, Math.min(page, TUTORIAL_PAGES.length - 1));
   const p = TUTORIAL_PAGES[tutorialPage];

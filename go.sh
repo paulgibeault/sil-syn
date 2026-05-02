@@ -4,7 +4,7 @@ set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 PID_FILE="$DIR/.go.pid"
 LOG_FILE="$DIR/.go.log"
-PORT=8787
+PORT=8791
 
 # Kill previous run if pid file exists
 if [ -f "$PID_FILE" ]; then
@@ -22,7 +22,7 @@ if [ -f "$PID_FILE" ]; then
 fi
 
 # Start new server, capturing stdout and stderr to log file
-python3 -m http.server "$PORT" --directory "$DIR" > "$LOG_FILE" 2>&1 &
+python3 -m http.server "$PORT" --bind 127.0.0.1 --directory "$DIR" > "$LOG_FILE" 2>&1 &
 NEW_PID=$!
 
 # Verify it started
