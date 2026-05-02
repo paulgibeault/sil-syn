@@ -82,6 +82,7 @@ let guide = null;
 let running = false;
 let runTimer = null;
 let lastTickTime = 0;
+let prevRegs = { acc: 0, dat: 0, pc: 0 };
 const TICK_INTERVAL = 200;
 
 function runLoop(timestamp) {
