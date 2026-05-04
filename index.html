@@ -1,48 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script>
-  // Sandboxed-iframe localStorage shim. When loaded inside the launcher's
-  // sandboxed iframe (no allow-same-origin), parent's localStorage is
-  // unreachable directly — proxy via postMessage to the launcher's
-  // gameStorageProxy IIFE. Standalone (window.parent === window): no-op.
-  (function () {
-    if (window.parent === window) return;
-    var cache = Object.create(null);
-    var pending = Object.create(null);
-    var nextId = 0;
-    function send(op, payload) {
-      var requestId = String(++nextId);
-      var p = new Promise(function (resolve) { pending[requestId] = resolve; });
-      window.parent.postMessage(
-        Object.assign({ type: 'ls-proxy-request', requestId: requestId, op: op }, payload || {}),
-        '*'
-      );
-      return p;
-    }
-    window.addEventListener('message', function (e) {
-      if (e.source !== window.parent) return;
-      var d = e.data;
-      if (!d || d.type !== 'ls-proxy-response') return;
-      var resolver = pending[d.requestId];
-      if (resolver) { delete pending[d.requestId]; resolver(d); }
-    });
-    var shim = {
-      getItem: function (k) { return Object.prototype.hasOwnProperty.call(cache, k) ? cache[k] : null; },
-      setItem: function (k, v) { var s = String(v); cache[k] = s; send('setItem', { key: k, value: s }); },
-      removeItem: function (k) { delete cache[k]; send('removeItem', { key: k }); },
-      clear: function () { cache = Object.create(null); send('clear'); },
-      key: function (i) { return Object.keys(cache)[i] || null; },
-      get length() { return Object.keys(cache).length; }
-    };
-    Object.defineProperty(window, 'localStorage', { value: shim, configurable: true });
-    window.__storageReady = send('dump').then(function (reply) {
-      if (reply && reply.ok && reply.data) {
-        Object.keys(reply.data).forEach(function (k) { cache[k] = reply.data[k]; });
-      }
-    });
-  })();
-  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Silicon Syndicate</title>
@@ -58,8 +16,70 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="apple-touch-icon" sizes="167x167" href="apple-touch-icon-167.png">
   <link rel="apple-touch-icon" sizes="152x152" href="apple-touch-icon-152.png">
+  <script src="https://paulgibeault.github.io/arcade-sdk.js"></script>
+  <script>
+    // Boot the Arcade SDK before any game code reads storage.
+    Arcade.init({ gameId: 'si-syn' });
+
+    // One-shot migration of pre-Arcade keys into the namespaced layout.
+    Arcade.state.migrate('v1', function () {
+      try {
+        var raw = localStorage.getItem('silicon-syndicate');
+        if (raw) {
+          var d = JSON.parse(raw);
+          if (d && typeof d === 'object') {
+            if (d.passed && typeof d.passed === 'object') Arcade.state.set('passed', d.passed);
+            if (d.code && typeof d.code === 'object') Arcade.state.set('code', d.code);
+            if (d.boot_complete) Arcade.state.set('bootComplete', true);
+          }
+        }
+      } catch (e) {}
+      try { localStorage.removeItem('silicon-syndicate'); } catch (e) {}
+      try {
+        var s = parseFloat(localStorage.getItem('si-syn-text-scale'));
+        if (!isNaN(s) && s > 0) Arcade.state.set('textScale', s);
+      } catch (e) {}
+      try { localStorage.removeItem('si-syn-text-scale'); } catch (e) {}
+    });
+
+    // Effective text scale = base density × local user choice (A+/A-) × launcher fontScale.
+    // Set it before first paint so font sizing is correct without a flash.
+    (function () {
+      var BASE_SCALE = 0.85;
+      function apply() {
+        var local = Arcade.state.get('textScale');
+        if (typeof local !== 'number' || !isFinite(local)) local = 1;
+        var arcadeScale = Arcade.settings.fontScale();
+        document.documentElement.style.setProperty('--text-scale', String(BASE_SCALE * local * arcadeScale));
+      }
+      apply();
+      Arcade.onSettingsChange(apply);
+      Arcade.onStateReplaced(apply);
+      window.__applyTextScale = apply;
+    })();
+
+    // Reduced-motion: toggle a body class so CSS animations short-circuit.
+    (function () {
+      function apply() {
+        if (document.body) {
+          document.body.classList.toggle('reduced-motion', Arcade.settings.reducedMotion());
+        }
+      }
+      Arcade.onSettingsChange(apply);
+      document.addEventListener('DOMContentLoaded', apply);
+    })();
+  </script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body.reduced-motion *,
+    body.reduced-motion *::before,
+    body.reduced-motion *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
 
     :root {
       --text-scale: 1;
@@ -1341,21 +1361,26 @@
   </div>
 
   <script>
-    (function() {
-      var KEY = 'si-syn-text-scale';
-      var scale = parseFloat(localStorage.getItem(KEY)) || 1;
-      document.documentElement.style.setProperty('--text-scale', scale);
+    (function () {
+      var ctrls = document.getElementById('font-controls');
+      var btnUp = document.getElementById('btn-font-up');
+      var btnDown = document.getElementById('btn-font-down');
 
-      document.getElementById('btn-font-up').addEventListener('click', function() {
-        scale = Math.min(scale + 0.1, 2);
-        document.documentElement.style.setProperty('--text-scale', scale);
-        localStorage.setItem(KEY, scale);
+      // Hide local A+/A- when framed — the launcher provides its own font setting.
+      Arcade.ready.then(function () {
+        if (Arcade.context.framed && ctrls) ctrls.style.display = 'none';
       });
-      document.getElementById('btn-font-down').addEventListener('click', function() {
-        scale = Math.max(scale - 0.1, 0.5);
-        document.documentElement.style.setProperty('--text-scale', scale);
-        localStorage.setItem(KEY, scale);
-      });
+
+      function getLocal() {
+        var v = Arcade.state.get('textScale');
+        return (typeof v === 'number' && isFinite(v)) ? v : 1;
+      }
+      function setLocal(v) {
+        Arcade.state.set('textScale', v);
+        if (window.__applyTextScale) window.__applyTextScale();
+      }
+      btnUp.addEventListener('click', function () { setLocal(Math.min(getLocal() + 0.1, 2)); });
+      btnDown.addEventListener('click', function () { setLocal(Math.max(getLocal() - 0.1, 0.5)); });
     })();
   </script>
   <script type="module" src="/src/main.js"></script>

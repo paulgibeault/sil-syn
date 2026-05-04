@@ -2,11 +2,8 @@
  * Main entry point — wires the game UI to the simulation engine.
  */
 
-// In sandboxed-iframe context (launcher), wait for postMessage-backed
-// localStorage to hydrate before any save data is read.
-if (typeof window !== 'undefined' && window.__storageReady) {
-  await window.__storageReady;
-}
+const Arcade = window.Arcade;
+await Arcade.ready;
 
 import { createMCU, parseProgram } from './engine/mcu.js';
 import { runLevel } from './engine/verifier.js';
@@ -95,30 +92,29 @@ function runLoop(timestamp) {
 }
 
 // ---------------------------------------------------------------------------
-// localStorage persistence
+// Persistence — arcade.v1.si-syn.* via Arcade SDK
 // ---------------------------------------------------------------------------
 
-const STORAGE_KEY = 'silicon-syndicate';
-
-function loadSavedData() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
-  catch { return {}; }
+function getSavedCode(id) {
+  const code = Arcade.state.get('code') || {};
+  return code[id] ?? '';
 }
-function saveData(data) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
-}
-function getSavedCode(id) { return loadSavedData().code?.[id] ?? ''; }
 function setSavedCode(id, code) {
-  const d = loadSavedData(); if (!d.code) d.code = {}; d.code[id] = code; saveData(d);
+  const map = Arcade.state.get('code') || {};
+  map[id] = code;
+  Arcade.state.set('code', map);
 }
 function markLevelPassed(id) {
-  const d = loadSavedData(); if (!d.passed) d.passed = {}; d.passed[id] = true; saveData(d);
+  const passed = Arcade.state.get('passed') || {};
+  passed[id] = true;
+  Arcade.state.set('passed', passed);
 }
-function isLevelPassed(id) { return loadSavedData().passed?.[id] === true; }
-function isBootComplete() { return loadSavedData().boot_complete === true; }
-function setBootComplete() {
-  const d = loadSavedData(); d.boot_complete = true; saveData(d);
+function isLevelPassed(id) {
+  const passed = Arcade.state.get('passed') || {};
+  return passed[id] === true;
 }
+function isBootComplete() { return Arcade.state.get('bootComplete') === true; }
+function setBootComplete() { Arcade.state.set('bootComplete', true); }
 
 // ---------------------------------------------------------------------------
 // Unlock logic — levels unlock in order (boot → training → puzzle)
@@ -915,6 +911,27 @@ function onLevelPassed(levelId, wasAlreadyPassed) {
   // Place it below the banner inside #game-area
   document.getElementById('game-area').appendChild(prompt);
 }
+
+// ---------------------------------------------------------------------------
+// Arcade lifecycle — pause when hidden, reload after launcher imports a save
+// ---------------------------------------------------------------------------
+
+let wasRunningOnSuspend = false;
+Arcade.onSuspend(() => {
+  wasRunningOnSuspend = running;
+  if (running) stopRun();
+});
+Arcade.onResume(() => {
+  if (wasRunningOnSuspend) {
+    wasRunningOnSuspend = false;
+    startRun();
+  }
+});
+Arcade.onStateReplaced(() => {
+  // Re-read everything from storage and rebuild the UI.
+  if (currentLevel) loadLevel(currentLevel.id);
+  else renderLevelMap();
+});
 
 // ---------------------------------------------------------------------------
 // Init
